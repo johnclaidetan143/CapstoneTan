@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { allProducts } from "@/lib/products";
@@ -13,27 +14,60 @@ const features = [
   "Gift-Ready Packaging",
 ];
 
-const fallbackFeaturedProduct = {
-  name: "Sunflower Bouquet",
-  category: "Bouquet",
-  price: 115,
-  image: "/static/images/products/sunflower-bouquet.jpg",
-  badge: "LIMITED DROP",
+type FeaturedProduct = {
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  badge: string;
 };
+
+const featuredProductTargets: FeaturedProduct[] = [
+  { name: "Red Bouquet", category: "Bouquet", price: 120, image: "/static/images/products/red-bouquet.jpg", badge: "LIMITED DROP" },
+  { name: "Blue Bouquet", category: "Bouquet", price: 115, image: "/static/images/products/blue-bouquet.jpg", badge: "LIMITED DROP" },
+  { name: "Sunflower Bouquet", category: "Bouquet", price: 150, image: "/static/images/products/sunflower-bouquet.jpg", badge: "LIMITED DROP" },
+  { name: "Pink Bouquet", category: "Bouquet", price: 130, image: "/static/images/products/pink-bouquet.jpg", badge: "LIMITED DROP" },
+];
 
 const imageFallbackSrc = "/static/images/products/default.jpg";
 
 export default function Home() {
-  const featuredFromData = allProducts.find((p) => p.category === "Bouquet");
-  const featuredProduct = featuredFromData
-    ? {
-        name: featuredFromData.name,
-        category: featuredFromData.category,
-        price: featuredFromData.price,
-        image: featuredFromData.img,
-        badge: "LIMITED DROP",
-      }
-    : fallbackFeaturedProduct;
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const featuredProducts = useMemo(
+    () =>
+      featuredProductTargets.map((target) => {
+        const match = allProducts.find((p) => p.name === target.name);
+        if (!match) return target;
+
+        return {
+          name: match.name,
+          category: match.category,
+          price: match.price,
+          image: match.img || target.image,
+          badge: target.badge,
+        };
+      }),
+    []
+  );
+
+  const featuredProduct = featuredProducts[activeIndex] || featuredProducts[0];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveIndex((prev) => (prev + 1) % featuredProducts.length);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [featuredProducts.length]);
+
+  function goToPrev() {
+    setActiveIndex((prev) => (prev - 1 + featuredProducts.length) % featuredProducts.length);
+  }
+
+  function goToNext() {
+    setActiveIndex((prev) => (prev + 1) % featuredProducts.length);
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0b12] text-white">
@@ -96,30 +130,65 @@ export default function Home() {
           <div className="relative animate-float">
             <div className="absolute -inset-4 rounded-[30px] bg-[linear-gradient(135deg,#ff4da6,#ff85c1)] opacity-30 blur-2xl" />
             <div className="card-glow relative overflow-hidden rounded-[25px] border border-[#ffc0e0]/30 bg-[#15151f] p-4">
-              <Image
-                src={featuredProduct.image || imageFallbackSrc}
-                alt={featuredProduct.name}
-                width={780}
-                height={920}
-                className="h-[440px] w-full rounded-[20px] object-cover object-center sm:h-[520px]"
-                onError={(e) => {
-                  e.currentTarget.src = imageFallbackSrc;
-                }}
-                priority
-              />
-              <div className="absolute left-5 top-5 rounded-full border border-[#ffc0e0]/40 bg-[#15151f]/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#ffc0e0] backdrop-blur">
-                {featuredProduct.badge}
+              <div key={activeIndex} className="hero-slide">
+                <Image
+                  src={featuredProduct.image || imageFallbackSrc}
+                  alt={featuredProduct.name}
+                  width={780}
+                  height={920}
+                  className="h-[440px] w-full rounded-[20px] object-cover object-center sm:h-[520px]"
+                  onError={(e) => {
+                    e.currentTarget.src = imageFallbackSrc;
+                  }}
+                  priority
+                />
+                <div className="absolute left-5 top-5 rounded-full border border-[#ffc0e0]/40 bg-[#15151f]/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#ffc0e0] backdrop-blur">
+                  {featuredProduct.badge}
+                </div>
+                <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-[#ffc0e0]/25 bg-[#15151f]/70 p-4 backdrop-blur">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ffc0e0]">
+                    {featuredProduct.category}
+                  </p>
+                  <h3 className="mt-1 text-lg font-bold leading-tight text-white">
+                    {featuredProduct.name}
+                  </h3>
+                  <p className="mt-2 text-sm font-semibold text-[#ffc0e0]">
+                    &#8369;{featuredProduct.price.toFixed(2)}
+                  </p>
+                </div>
               </div>
-              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-[#ffc0e0]/25 bg-[#15151f]/70 p-4 backdrop-blur">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ffc0e0]">
-                  {featuredProduct.category}
-                </p>
-                <h3 className="mt-1 text-lg font-bold leading-tight text-white">
-                  {featuredProduct.name}
-                </h3>
-                <p className="mt-2 text-sm font-semibold text-[#ffc0e0]">
-                  ₱{featuredProduct.price.toFixed(2)}
-                </p>
+
+              <div className="absolute bottom-24 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[#15151f]/55 px-3 py-2 backdrop-blur">
+                {featuredProducts.map((product, index) => (
+                  <button
+                    key={product.name}
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    aria-label={`Show ${product.name}`}
+                    className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
+                      index === activeIndex ? "bg-[#ff85c1] shadow-[0_0_10px_rgba(255,133,193,0.8)]" : "bg-[#ffc0e0]/45"
+                    }`}
+                  />
+                ))}
+              </div>
+
+              <div className="absolute left-3 right-3 top-1/2 flex -translate-y-1/2 justify-between">
+                <button
+                  type="button"
+                  onClick={goToPrev}
+                  aria-label="Previous product"
+                  className="grid h-9 w-9 place-items-center rounded-full border border-[#ffc0e0]/45 bg-[#15151f]/65 text-[#ffc0e0] backdrop-blur transition-all hover:scale-105"
+                >
+                  &#8249;
+                </button>
+                <button
+                  type="button"
+                  onClick={goToNext}
+                  aria-label="Next product"
+                  className="grid h-9 w-9 place-items-center rounded-full border border-[#ffc0e0]/45 bg-[#15151f]/65 text-[#ffc0e0] backdrop-blur transition-all hover:scale-105"
+                >
+                  &#8250;
+                </button>
               </div>
             </div>
           </div>
@@ -188,9 +257,18 @@ export default function Home() {
           animation: floatY 4.6s ease-in-out infinite;
         }
 
+        .hero-slide {
+          animation: heroSlideIn 0.55s ease both;
+        }
+
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(16px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes heroSlideIn {
+          from { opacity: 0; transform: translateX(12px); }
+          to { opacity: 1; transform: translateX(0); }
         }
 
         @keyframes floatY {
