@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
@@ -25,7 +24,7 @@ type FeaturedProduct = {
 const featuredProductTargets: FeaturedProduct[] = [
   { name: "Red Bouquet", category: "Bouquet", price: 120, image: "/static/images/products/red-bouquet.jpg", badge: "LIMITED DROP" },
   { name: "Blue Bouquet", category: "Bouquet", price: 115, image: "/static/images/products/blue-bouquet.jpg", badge: "LIMITED DROP" },
-  { name: "Sunflower Bouquet", category: "Bouquet", price: 150, image: "/static/images/products/sunflower-bouquet.jpg", badge: "LIMITED DROP" },
+  { name: "Sunflower Bouquet", category: "Bouquet", price: 150, image: "/static/images/products/forever-petals-bouquet.png", badge: "LIMITED DROP" },
   { name: "Pink Bouquet", category: "Bouquet", price: 130, image: "/static/images/products/pink-bouquet.jpg", badge: "LIMITED DROP" },
 ];
 
@@ -56,7 +55,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % featuredProducts.length);
-    }, 3000);
+    }, 1500);
 
     return () => clearInterval(timer);
   }, [featuredProducts.length]);
@@ -131,16 +130,13 @@ export default function Home() {
             <div className="absolute -inset-4 rounded-[30px] bg-[linear-gradient(135deg,#ff4da6,#ff85c1)] opacity-30 blur-2xl" />
             <div className="card-glow relative overflow-hidden rounded-[25px] border border-[#ffc0e0]/30 bg-[#15151f] p-4">
               <div key={activeIndex} className="hero-slide">
-                <Image
+                <img
                   src={featuredProduct.image || imageFallbackSrc}
                   alt={featuredProduct.name}
-                  width={780}
-                  height={920}
                   className="h-[440px] w-full rounded-[20px] object-cover object-center sm:h-[520px]"
                   onError={(e) => {
                     e.currentTarget.src = imageFallbackSrc;
                   }}
-                  priority
                 />
                 <div className="absolute left-5 top-5 rounded-full border border-[#ffc0e0]/40 bg-[#15151f]/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#ffc0e0] backdrop-blur">
                   {featuredProduct.badge}
