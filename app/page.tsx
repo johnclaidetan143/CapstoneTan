@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { allProducts } from "@/lib/products";
 
 const features = [
   "Fast Nationwide Delivery",
@@ -12,7 +13,28 @@ const features = [
   "Gift-Ready Packaging",
 ];
 
+const fallbackFeaturedProduct = {
+  name: "Sunflower Bouquet",
+  category: "Bouquet",
+  price: 115,
+  image: "/static/images/products/sunflower-bouquet.jpg",
+  badge: "LIMITED DROP",
+};
+
+const imageFallbackSrc = "/static/images/products/default.jpg";
+
 export default function Home() {
+  const featuredFromData = allProducts.find((p) => p.category === "Bouquet");
+  const featuredProduct = featuredFromData
+    ? {
+        name: featuredFromData.name,
+        category: featuredFromData.category,
+        price: featuredFromData.price,
+        image: featuredFromData.img,
+        badge: "LIMITED DROP",
+      }
+    : fallbackFeaturedProduct;
+
   return (
     <div className="min-h-screen bg-[#0b0b12] text-white">
       <Navbar />
@@ -75,15 +97,29 @@ export default function Home() {
             <div className="absolute -inset-4 rounded-[30px] bg-[linear-gradient(135deg,#ff4da6,#ff85c1)] opacity-30 blur-2xl" />
             <div className="card-glow relative overflow-hidden rounded-[25px] border border-[#ffc0e0]/30 bg-[#15151f] p-4">
               <Image
-                src="/Bouquet.jpg"
-                alt="Featured bouquet"
+                src={featuredProduct.image || imageFallbackSrc}
+                alt={featuredProduct.name}
                 width={780}
                 height={920}
                 className="h-[440px] w-full rounded-[20px] object-cover object-center sm:h-[520px]"
+                onError={(e) => {
+                  e.currentTarget.src = imageFallbackSrc;
+                }}
                 priority
               />
               <div className="absolute left-5 top-5 rounded-full border border-[#ffc0e0]/40 bg-[#15151f]/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.2em] text-[#ffc0e0] backdrop-blur">
-                Limited Drop
+                {featuredProduct.badge}
+              </div>
+              <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-[#ffc0e0]/25 bg-[#15151f]/70 p-4 backdrop-blur">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[#ffc0e0]">
+                  {featuredProduct.category}
+                </p>
+                <h3 className="mt-1 text-lg font-bold leading-tight text-white">
+                  {featuredProduct.name}
+                </h3>
+                <p className="mt-2 text-sm font-semibold text-[#ffc0e0]">
+                  ₱{featuredProduct.price.toFixed(2)}
+                </p>
               </div>
             </div>
           </div>
