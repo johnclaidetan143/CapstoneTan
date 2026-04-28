@@ -1,9 +1,9 @@
 "use client";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ProductImage from "@/components/ProductImage";
 import { allProducts } from "@/lib/products";
 import { addToCart } from "@/lib/cart";
 
@@ -57,7 +57,7 @@ export default function ShopPage() {
           {filtered.map((p) => (
             <div key={p.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
               <div className="overflow-hidden">
-                <Image src={p.img} alt={p.name} width={400} height={300} className="w-full h-52 object-cover" />
+                <ProductImage src={p.img} alt={p.name} className="w-full h-[260px] object-cover block" />
               </div>
               <div className="p-4">
                 <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">{p.category}</span>
