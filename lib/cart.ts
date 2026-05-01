@@ -1,4 +1,4 @@
-import { deductStock } from "@/lib/stock";
+import { deductStock, restoreStock } from "@/lib/stock";
 
 export type CartItem = {
   productId: number;
@@ -40,8 +40,13 @@ export function addToCart(product: { id: number; name: string; subtitle: string;
 export function updateQuantity(productId: number, quantity: number) {
   const cart = getCart();
   const item = cart.find((i) => i.productId === productId);
-  if (item) item.quantity = quantity;
-  localStorage.setItem("cart", JSON.stringify(cart));
+  if (item) {
+    const diff = quantity - item.quantity;
+    item.quantity = quantity;
+    localStorage.setItem("cart", JSON.stringify(cart));
+    if (diff > 0) deductStock([{ productId, quantity: diff }]);
+    else if (diff < 0) restoreStock([{ productId, quantity: Math.abs(diff) }]);
+  }
   return cart;
 }
 

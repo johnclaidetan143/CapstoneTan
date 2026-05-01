@@ -6,7 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getCart, removeFromCart, updateQuantity, CartItem } from "@/lib/cart";
 import { getOrderHistory, updateOrder, markAllNotificationsRead, getUnreadNotifications, OrderRecord } from "@/lib/orderHistory";
-import { restoreStock } from "@/lib/stock";
+import { restoreStock, getProductStock } from "@/lib/stock";
 import { getAverageRating, getReviews } from "@/lib/reviews";
 import { showToast } from "@/lib/toast";
 import { allProducts } from "@/lib/products";
@@ -59,6 +59,10 @@ export default function OrdersPage() {
 
   function handleQuantity(productId: number, quantity: number) {
     if (quantity < 1) return;
+    const currentItem = cart.find((i) => i.productId === productId);
+    if (!currentItem) return;
+    const stockLeft = getProductStock(productId) + currentItem.quantity; // available + what's already in cart
+    if (quantity > stockLeft) { showToast(`Only ${stockLeft} available in stock.`, "error"); return; }
     setCart([...updateQuantity(productId, quantity)]);
     window.dispatchEvent(new Event("cartUpdated"));
   }
