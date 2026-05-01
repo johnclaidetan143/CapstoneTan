@@ -2,55 +2,131 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { getCart, getCartTotal, clearCart, CartItem } from "@/lib/cart";
+import { getCart, clearCart, CartItem } from "@/lib/cart";
+import { getSavedAddress } from "@/lib/user";
+import { applyPromo } from "@/lib/promo";
+import { saveOrder } from "@/lib/orderHistory";
+import { deductStock } from "@/lib/stock";
+
+const BANK_DETAILS: Record<string, { account: string; number: string }> = {
+  Landbank: { account: "Chenni Craft Shop", number: "1234-5678-9012" },
+  BDO:      { account: "Chenni Craft Shop", number: "2345-6789-0123" },
+  BPI:      { account: "Chenni Craft Shop", number: "3456-7890-1234" },
+};
+
+const GCASH = { number: "09XXXXXXXXX", name: "Chenni Craft Shop" };
+
+type FormState = {
+  name: string; phone: string; address: string; city: string;
+  payment: string; selectedBank: string; referenceNumber: string;
+};
+
+type ErrorState = Partial<FormState>;
 
 export default function CheckoutPage() {
   const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [form, setForm] = useState({ name: "", phone: "", address: "", city: "", payment: "gcash" });
-  const [errors, setErrors] = useState<Partial<typeof form>>({});
+  const [form, setForm] = useState<FormState>({
+    name: "", phone: "", address: "", city: "",
+    payment: "", selectedBank: "", referenceNumber: "",
+  });
+  const [errors, setErrors] = useState<ErrorState>({});
+  const [promoCode, setPromoCode] = useState("");
+  const [promoDiscount, setPromoDiscount] = useState(0);
+  const [promoMsg, setPromoMsg] = useState("");
+  const [promoError, setPromoError] = useState("");
 
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) router.push("/login");
     const c = getCart();
     if (c.length === 0) router.push("/orders");
     setCart(c);
+    // Auto-fill saved address
+    const saved = getSavedAddress();
+    if (saved) setForm((prev) => ({ ...prev, name: saved.name, phone: saved.phone, address: saved.address, city: saved.city }));
   }, [router]);
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   }
 
-  function validate() {
-    const e: Partial<typeof form> = {};
-    if (!form.name.trim()) e.name = "Full name is required";
-    if (!form.phone.trim()) e.phone = "Phone number is required";
+  function handleApplyPromo() {
+    setPromoMsg(""); setPromoError("");
+    const result = applyPromo(promoCode, cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
+    if (result.valid) {
+      setPromoDiscount(result.discount);
+      setPromoMsg(result.message);
+    } else {
+      setPromoDiscount(0);
+      setPromoError(result.error);
+    }
+  }
+
+  function selectPayment(value: string) {
+    setForm((prev) => ({ ...prev, payment: value, selectedBank: "", referenceNumber: "" }));
+    setErrors((prev) => ({ ...prev, payment: "", selectedBank: "", referenceNumber: "" }));
+  }
+
+  function selectBank(bank: string) {
+    setForm((prev) => ({ ...prev, selectedBank: bank }));
+    setErrors((prev) => ({ ...prev, selectedBank: "" }));
+  }
+
+  function validate(): ErrorState {
+    const e: ErrorState = {};
+    if (!form.name.trim())    e.name    = "Full name is required";
+    if (!form.phone.trim())   e.phone   = "Phone number is required";
     if (!form.address.trim()) e.address = "Address is required";
-    if (!form.city.trim()) e.city = "City is required";
+    if (!form.city.trim())    e.city    = "City is required";
+    if (!form.payment)        e.payment = "Please select a payment method";
+    if (form.payment === "bank" && !form.selectedBank) e.selectedBank = "Please select a bank";
+    if ((form.payment === "gcash" || form.payment === "bank") && !form.referenceNumber.trim())
+      e.referenceNumber = "Reference number is required";
     return e;
   }
 
   function handlePlaceOrder(e: React.FormEvent) {
     e.preventDefault();
-    const e2 = validate();
-    if (Object.keys(e2).length > 0) { setErrors(e2); return; }
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
+    const isCOD = form.payment === "cod";
     const orderNumber = "CCH-" + Date.now().toString().slice(-6);
     const order = {
       orderNumber,
       date: new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
       items: cart,
-      total: getCartTotal(),
-      customer: form,
+      total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0) - promoDiscount,
+      promoCode: promoDiscount > 0 ? promoCode.toUpperCase() : null,
+      promoDiscount,
+      customer: { name: form.name, phone: form.phone, address: form.address, city: form.city },
+      payment: {
+        method: form.payment,
+        bank: form.selectedBank || null,
+        accountUsed: form.payment === "gcash"
+          ? GCASH.number
+          : form.selectedBank ? BANK_DETAILS[form.selectedBank].number : null,
+        referenceNumber: isCOD ? "" : form.referenceNumber,
+        status: isCOD ? "Pending Payment" : "Pending Verification",
+      },
+      trackingStatus: "Pending Verification" as const,
     };
+
     localStorage.setItem("lastOrder", JSON.stringify(order));
+    // Also save directly to order history so Orders page shows it
+    const history = JSON.parse(localStorage.getItem("orderHistory") || "[]");
+    const exists = history.find((o: { orderNumber: string }) => o.orderNumber === order.orderNumber);
+    if (!exists) saveOrder(order);
+    deductStock(cart.map((i) => ({ productId: i.productId, quantity: i.quantity })));
     clearCart();
     window.dispatchEvent(new Event("cartUpdated"));
     router.push("/confirmation");
   }
 
-  const total = getCartTotal();
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const bankInfo = form.selectedBank ? BANK_DETAILS[form.selectedBank] : null;
 
   return (
     <div className="min-h-screen bg-[#fafaf8]">
@@ -63,7 +139,7 @@ export default function CheckoutPage() {
         </div>
 
         <form onSubmit={handlePlaceOrder} className="grid grid-cols-3 gap-6">
-          {/* LEFT — Form */}
+          {/* LEFT */}
           <div className="col-span-2 flex flex-col gap-5">
 
             {/* Delivery Info */}
@@ -73,40 +149,34 @@ export default function CheckoutPage() {
                 Delivery Information
               </h2>
               <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 flex justify-end">
+                  <button type="button" onClick={() => { const s = getSavedAddress(); if (s) setForm((p) => ({ ...p, ...s })); }}
+                    className="text-xs text-amber-600 hover:text-amber-700 font-semibold transition-colors">
+                    Use Saved Address
+                  </button>
+                </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">Full Name</label>
-                  <input
-                    name="name" value={form.name} onChange={handleChange}
-                    placeholder="e.g. Juan Dela Cruz"
-                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  />
+                  <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Juan Dela Cruz"
+                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">Phone Number</label>
-                  <input
-                    name="phone" value={form.phone} onChange={handleChange}
-                    placeholder="e.g. 09XX XXX XXXX"
-                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  />
+                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="e.g. 09XX XXX XXXX"
+                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.phone && <p className="text-xs text-red-400">{errors.phone}</p>}
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">Street Address</label>
-                  <input
-                    name="address" value={form.address} onChange={handleChange}
-                    placeholder="House No., Street, Barangay"
-                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  />
+                  <input name="address" value={form.address} onChange={handleChange} placeholder="House No., Street, Barangay"
+                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.address && <p className="text-xs text-red-400">{errors.address}</p>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">City / Municipality</label>
-                  <input
-                    name="city" value={form.city} onChange={handleChange}
-                    placeholder="e.g. Cebu City"
-                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  />
+                  <input name="city" value={form.city} onChange={handleChange} placeholder="e.g. Cebu City"
+                    className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.city && <p className="text-xs text-red-400">{errors.city}</p>}
                 </div>
               </div>
@@ -118,28 +188,94 @@ export default function CheckoutPage() {
                 <span className="bg-amber-500 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">2</span>
                 Payment Method
               </h2>
+
               <div className="flex flex-col gap-3">
                 {[
-                  { value: "gcash", label: "GCash", icon: "📱" },
-                  { value: "cod", label: "Cash on Delivery", icon: "💵" },
-                  { value: "bank", label: "Bank Transfer", icon: "🏦" },
+                  { value: "gcash", label: "GCash",              icon: "📱" },
+                  { value: "bank",  label: "Bank / Card Payment", icon: "🏦" },
+                  { value: "cod",   label: "Cash on Delivery",    icon: "💵" },
                 ].map((method) => (
                   <label
                     key={method.value}
+                    onClick={() => selectPayment(method.value)}
                     className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-colors ${
                       form.payment === method.value ? "border-amber-400 bg-amber-50" : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <input
-                      type="radio" name="payment" value={method.value}
-                      checked={form.payment === method.value}
-                      onChange={handleChange} className="accent-amber-500"
-                    />
+                    <input type="radio" name="payment" value={method.value}
+                      checked={form.payment === method.value} onChange={() => selectPayment(method.value)}
+                      className="accent-amber-500" />
                     <span className="text-lg">{method.icon}</span>
                     <span className="text-sm font-semibold text-gray-800">{method.label}</span>
                   </label>
                 ))}
               </div>
+              {errors.payment && <p className="text-xs text-red-400 mt-2">{errors.payment}</p>}
+
+              {/* COD FLOW */}
+              {form.payment === "cod" && (
+                <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-1">Cash on Delivery</p>
+                  <p className="text-sm text-gray-600">Pay when your order arrives. No reference number needed.</p>
+                </div>
+              )}
+
+              {/* GCASH FLOW */}
+              {form.payment === "gcash" && (
+                <div className="mt-4 flex flex-col gap-3">
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <p className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-2">Send payment to this GCash number</p>
+                    <p className="text-lg font-extrabold text-gray-900">{GCASH.number}</p>
+                    <p className="text-sm text-gray-500">Account Name: <span className="font-semibold text-gray-700">{GCASH.name}</span></p>
+                    <p className="text-xs text-gray-400 mt-2">After sending, enter your GCash reference number below.</p>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-600">GCash Reference Number</label>
+                    <input name="referenceNumber" value={form.referenceNumber} onChange={handleChange}
+                      placeholder="e.g. 1234567890"
+                      className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                    {errors.referenceNumber && <p className="text-xs text-red-400">{errors.referenceNumber}</p>}
+                  </div>
+                </div>
+              )}
+
+              {/* BANK FLOW */}
+              {form.payment === "bank" && (
+                <div className="mt-4 flex flex-col gap-3">
+                  <p className="text-xs font-semibold text-gray-600">Select your bank</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {Object.keys(BANK_DETAILS).map((bank) => (
+                      <button type="button" key={bank} onClick={() => selectBank(bank)}
+                        className={`border rounded-xl py-2 text-sm font-semibold transition-colors ${
+                          form.selectedBank === bank
+                            ? "border-amber-400 bg-amber-50 text-amber-700"
+                            : "border-gray-200 text-gray-600 hover:border-gray-400"
+                        }`}>
+                        {bank}
+                      </button>
+                    ))}
+                  </div>
+                  {errors.selectedBank && <p className="text-xs text-red-400">{errors.selectedBank}</p>}
+
+                  {bankInfo && (
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                      <p className="text-xs font-bold text-green-600 uppercase tracking-wide mb-2">Send payment to this account</p>
+                      <p className="text-sm text-gray-500">Bank: <span className="font-bold text-gray-800">{form.selectedBank}</span></p>
+                      <p className="text-sm text-gray-500">Account Name: <span className="font-semibold text-gray-700">{bankInfo.account}</span></p>
+                      <p className="text-lg font-extrabold text-gray-900 mt-1">{bankInfo.number}</p>
+                      <p className="text-xs text-gray-400 mt-2">After sending, enter your transaction/reference number below.</p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-semibold text-gray-600">Transaction / Reference Number</label>
+                    <input name="referenceNumber" value={form.referenceNumber} onChange={handleChange}
+                      placeholder="e.g. TXN-1234567890"
+                      className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
+                    {errors.referenceNumber && <p className="text-xs text-red-400">{errors.referenceNumber}</p>}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -160,31 +296,49 @@ export default function CheckoutPage() {
               </div>
               <div className="border-t border-gray-100 mt-4 pt-4 flex flex-col gap-2">
                 <div className="flex justify-between text-sm text-gray-500">
-                  <span>Subtotal</span>
-                  <span>₱{total}.00</span>
+                  <span>Subtotal</span><span>₱{total}.00</span>
                 </div>
+                {promoDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 font-semibold">
+                    <span>Discount ({promoCode.toUpperCase()})</span>
+                    <span>-₱{promoDiscount}.00</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Shipping</span>
                   <span className="text-green-500 font-semibold">Free</span>
                 </div>
                 <div className="flex justify-between font-extrabold text-gray-900 text-lg mt-1">
-                  <span>Total</span>
-                  <span>₱{total}.00</span>
+                  <span>Total</span><span>₱{total - promoDiscount}.00</span>
                 </div>
+              </div>
+
+              {/* Promo Code */}
+              <div className="border-t border-gray-100 mt-4 pt-4">
+                <p className="text-xs font-semibold text-gray-600 mb-2">Promo Code</p>
+                <div className="flex gap-2">
+                  <input
+                    value={promoCode}
+                    onChange={(e) => { setPromoCode(e.target.value); setPromoMsg(""); setPromoError(""); }}
+                    placeholder="Enter code (e.g. CHENNI10)"
+                    className="flex-1 border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                  />
+                  <button type="button" onClick={handleApplyPromo}
+                    className="bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold px-4 rounded-xl transition-colors">
+                    Apply
+                  </button>
+                </div>
+                {promoMsg && <p className="text-xs text-green-500 font-semibold mt-1">{promoMsg}</p>}
+                {promoError && <p className="text-xs text-red-400 mt-1">{promoError}</p>}
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-3 rounded-full transition-colors text-sm"
-            >
+            <button type="submit"
+              className="w-full bg-amber-500 hover:bg-amber-400 text-white font-bold py-3 rounded-full transition-colors text-sm">
               Place Order
             </button>
-            <button
-              type="button"
-              onClick={() => router.push("/orders")}
-              className="w-full text-sm text-gray-400 hover:text-gray-700 font-medium transition-colors"
-            >
+            <button type="button" onClick={() => router.push("/orders")}
+              className="w-full text-sm text-gray-400 hover:text-gray-700 font-medium transition-colors">
               ← Back to Cart
             </button>
           </div>

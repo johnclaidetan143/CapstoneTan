@@ -4,7 +4,64 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ProductCard from "@/components/ProductCard";
 import { allProducts } from "@/lib/products";
+import { getActiveAnnouncements, Announcement } from "@/lib/announcements";
+import { getBestsellers, getTrending, RankedProduct } from "@/lib/bestsellers";
+import { getStock } from "@/lib/stock";
+import { getWishlist } from "@/lib/wishlist";
+
+function FreeShippingBanner() {
+  const [timeLeft, setTimeLeft] = useState({ h: 0, m: 0, s: 0 });
+
+  useEffect(() => {
+    // Set deadline to end of today
+    function calcTime() {
+      const now = new Date();
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const diff = Math.max(0, end.getTime() - now.getTime());
+      setTimeLeft({
+        h: Math.floor(diff / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      });
+    }
+    calcTime();
+    const t = setInterval(calcTime, 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  return (
+    <section className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 py-10">
+      <div className="max-w-4xl mx-auto px-6 text-center">
+        <p className="text-xs font-bold tracking-[0.3em] uppercase text-amber-900 mb-2">Limited Time Offer</p>
+        <h2 className="text-3xl font-extrabold text-white mb-1">🚚 FREE SHIPPING — Today Only!</h2>
+        <p className="text-amber-100 text-sm mb-6">Order now and enjoy free shipping on all items. Offer ends at midnight!</p>
+
+        {/* Countdown */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          {[{ label: "Hours", val: timeLeft.h }, { label: "Minutes", val: timeLeft.m }, { label: "Seconds", val: timeLeft.s }].map((t, i) => (
+            <div key={t.label} className="flex items-center gap-3">
+              <div className="bg-white rounded-2xl px-5 py-3 min-w-[72px] text-center shadow-md">
+                <p className="text-3xl font-extrabold text-amber-600 leading-none">{pad(t.val)}</p>
+                <p className="text-xs text-gray-400 font-semibold mt-1 uppercase tracking-wide">{t.label}</p>
+              </div>
+              {i < 2 && <span className="text-2xl font-extrabold text-white">:</span>}
+            </div>
+          ))}
+        </div>
+
+        <Link href="/shop"
+          className="inline-block bg-white text-amber-600 font-extrabold px-8 py-3 rounded-full text-sm hover:bg-amber-50 transition-colors shadow-md">
+          Shop Now — Free Shipping 🛒
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 const features = [
   "Fast Nationwide Delivery",
@@ -24,7 +81,6 @@ type FeaturedProduct = {
 const featuredProductTargets: FeaturedProduct[] = [
   { name: "Red Bouquet", category: "Bouquet", price: 120, image: "/static/images/products/red-bouquet.jpg", badge: "LIMITED DROP" },
   { name: "Blue Bouquet", category: "Bouquet", price: 115, image: "/static/images/products/blue-bouquet.jpg", badge: "LIMITED DROP" },
-  { name: "Sunflower Bouquet", category: "Bouquet", price: 150, image: "/static/images/products/forever-petals-bouquet.png", badge: "LIMITED DROP" },
   { name: "Pink Bouquet", category: "Bouquet", price: 130, image: "/static/images/products/pink-bouquet.jpg", badge: "LIMITED DROP" },
 ];
 
@@ -32,6 +88,24 @@ const imageFallbackSrc = "/static/images/products/default.jpg";
 
 export default function Home() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementIdx, setAnnouncementIdx] = useState(0);
+  const [showBanner, setShowBanner] = useState(true);
+  const [bestsellers, setBestsellers] = useState<RankedProduct[]>([]);
+  const [trending, setTrending] = useState<RankedProduct[]>([]);
+  const [stock, setStock] = useState<Record<number, number>>({});
+  const [wishlist, setWishlist] = useState<number[]>([]);
+
+  useEffect(() => {
+    setAnnouncements(getActiveAnnouncements());
+    setBestsellers(getBestsellers(6));
+    setTrending(getTrending(6));
+    setStock(getStock());
+    setWishlist(getWishlist());
+    const sync = () => setWishlist(getWishlist());
+    window.addEventListener("wishlistUpdated", sync);
+    return () => window.removeEventListener("wishlistUpdated", sync);
+  }, []);
 
   const featuredProducts = useMemo(
     () =>
@@ -56,9 +130,14 @@ export default function Home() {
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % featuredProducts.length);
     }, 1500);
-
     return () => clearInterval(timer);
   }, [featuredProducts.length]);
+
+  useEffect(() => {
+    if (announcements.length <= 1) return;
+    const t = setInterval(() => setAnnouncementIdx((p) => (p + 1) % announcements.length), 4000);
+    return () => clearInterval(t);
+  }, [announcements.length]);
 
   function goToPrev() {
     setActiveIndex((prev) => (prev - 1 + featuredProducts.length) % featuredProducts.length);
@@ -68,9 +147,23 @@ export default function Home() {
     setActiveIndex((prev) => (prev + 1) % featuredProducts.length);
   }
 
+  const bannerColors: Record<string, string> = {
+    sale:    "bg-amber-500 text-white",
+    info:    "bg-gray-900 text-white",
+    warning: "bg-red-500 text-white",
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0b12] text-white">
       <Navbar />
+
+      {/* Announcement Banner */}
+      {showBanner && announcements.length > 0 && (
+        <div className={`relative flex items-center justify-center px-6 py-2.5 text-xs font-semibold tracking-wide text-center ${bannerColors[announcements[announcementIdx]?.type ?? "info"]}`}>
+          <span>{announcements[announcementIdx]?.message}</span>
+          <button onClick={() => setShowBanner(false)} className="absolute right-4 text-white/70 hover:text-white text-sm">✕</button>
+        </div>
+      )}
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_24%,rgba(255,77,166,0.24),transparent_45%),radial-gradient(circle_at_82%_65%,rgba(255,133,193,0.18),transparent_42%)]" />
@@ -198,6 +291,60 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {/* BESTSELLERS */}
+      <section className="bg-[#fafaf8] py-14">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-xs text-amber-600 font-bold tracking-widest uppercase mb-1">Top Picks</p>
+              <h2 className="text-2xl font-extrabold text-gray-900">🏆 Bestsellers</h2>
+            </div>
+            <Link href="/shop" className="text-sm text-gray-500 hover:text-amber-600 font-medium transition-colors">Shop All →</Link>
+          </div>
+          {bestsellers.length === 0 ? (
+            <div className="grid grid-cols-3 gap-6">
+              {allProducts.slice(0, 6).map((p) => (
+                <ProductCard key={p.id} product={p} stock={stock[p.id] ?? 10} wishlisted={wishlist.includes(p.id)}
+                  badge={{ label: "Popular", color: "bg-amber-100 text-amber-700" }}
+                  onWishlistChange={(id, w) => setWishlist((prev) => w ? [...prev, id] : prev.filter((x) => x !== id))} />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-3 gap-6">
+              {bestsellers.map((p, i) => (
+                <ProductCard key={p.id} product={p} stock={stock[p.id] ?? 10} wishlisted={wishlist.includes(p.id)}
+                  badge={{ label: i === 0 ? "🥇 #1 Bestseller" : i === 1 ? "🥈 #2" : i === 2 ? "🥉 #3" : `#${i+1} Bestseller`, color: i === 0 ? "bg-amber-500 text-white" : "bg-amber-100 text-amber-700" }}
+                  onWishlistChange={(id, w) => setWishlist((prev) => w ? [...prev, id] : prev.filter((x) => x !== id))} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* FREE SHIPPING BANNER */}
+      <FreeShippingBanner />
+
+      {/* TRENDING NOW */}
+      <section className="bg-white py-14">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-xs text-rose-500 font-bold tracking-widest uppercase mb-1">What&apos;s Hot</p>
+              <h2 className="text-2xl font-extrabold text-gray-900">🔥 Trending Now</h2>
+            </div>
+            <Link href="/shop" className="text-sm text-gray-500 hover:text-amber-600 font-medium transition-colors">See All →</Link>
+          </div>
+          <div className="grid grid-cols-3 gap-6">
+            {(trending.length > 0 ? trending : allProducts.slice(-6)).map((p) => (
+              <ProductCard key={p.id} product={p} stock={stock[p.id] ?? 10} wishlisted={wishlist.includes(p.id)}
+                badge={{ label: "🔥 Trending", color: "bg-rose-100 text-rose-600" }}
+                onWishlistChange={(id, w) => setWishlist((prev) => w ? [...prev, id] : prev.filter((x) => x !== id))} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       <Footer />
 
       <style jsx>{`

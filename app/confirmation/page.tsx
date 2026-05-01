@@ -5,19 +5,27 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { CartItem } from "@/lib/cart";
+import { saveOrder } from "@/lib/orderHistory";
+import { showToast } from "@/lib/toast";
 
 type Order = {
   orderNumber: string;
   date: string;
   items: CartItem[];
   total: number;
-  customer: { name: string; phone: string; address: string; city: string; payment: string };
+  customer: { name: string; phone: string; address: string; city: string };
+  payment: {
+    method: string;
+    bank: string | null;
+    accountUsed: string | null;
+    referenceNumber: string;
+    status: string;
+  };
 };
 
-const paymentLabel: Record<string, string> = {
+const methodLabel: Record<string, string> = {
   gcash: "GCash",
-  cod: "Cash on Delivery",
-  bank: "Bank Transfer",
+  bank:  "Bank / Card Payment",
 };
 
 export default function ConfirmationPage() {
@@ -28,7 +36,17 @@ export default function ConfirmationPage() {
     if (!localStorage.getItem("loggedIn")) router.push("/login");
     const stored = localStorage.getItem("lastOrder");
     if (!stored) router.push("/");
-    else setOrder(JSON.parse(stored));
+    else {
+      const parsed = JSON.parse(stored);
+      setOrder(parsed);
+      // Save to order history (avoid duplicates)
+      const history = JSON.parse(localStorage.getItem("orderHistory") || "[]");
+      const exists = history.find((o: { orderNumber: string }) => o.orderNumber === parsed.orderNumber);
+      if (!exists) {
+        saveOrder({ ...parsed, trackingStatus: "Pending Verification" });
+        setTimeout(() => showToast("📧 Order confirmation sent to your email!", "info"), 1000);
+      }
+    }
   }, [router]);
 
   if (!order) return null;
@@ -38,13 +56,14 @@ export default function ConfirmationPage() {
       <Navbar />
 
       <div className="max-w-2xl mx-auto px-6 py-10">
+
         {/* Success Header */}
         <div className="bg-white rounded-2xl shadow-sm p-8 text-center mb-6">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <span className="text-3xl">✅</span>
           </div>
           <h1 className="text-2xl font-extrabold text-gray-900 mb-1">Order Placed!</h1>
-          <p className="text-sm text-gray-400">Thank you for your purchase, <span className="font-semibold text-gray-700">{order.customer.name}</span>!</p>
+          <p className="text-sm text-gray-400">Thank you, <span className="font-semibold text-gray-700">{order.customer.name}</span>! Your order is pending verification.</p>
           <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-6 py-3 inline-block">
             <p className="text-xs text-amber-600 font-bold tracking-widest uppercase">Order Number</p>
             <p className="text-xl font-extrabold text-amber-600">{order.orderNumber}</p>
@@ -73,23 +92,44 @@ export default function ConfirmationPage() {
           </div>
         </div>
 
-        {/* Delivery & Payment Info */}
+        {/* Delivery Info */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-4">
+          <h2 className="font-bold text-gray-900 mb-4">Delivery Details</h2>
+          <div className="text-sm flex flex-col gap-1">
+            <p className="font-semibold text-gray-800">{order.customer.name}</p>
+            <p className="text-gray-500">{order.customer.phone}</p>
+            <p className="text-gray-500">{order.customer.address}, {order.customer.city}</p>
+          </div>
+        </div>
+
+        {/* Payment Info */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <h2 className="font-bold text-gray-900 mb-4">Delivery & Payment</h2>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Deliver to</p>
-              <p className="font-semibold text-gray-800">{order.customer.name}</p>
-              <p className="text-gray-500">{order.customer.phone}</p>
-              <p className="text-gray-500">{order.customer.address}</p>
-              <p className="text-gray-500">{order.customer.city}</p>
+          <h2 className="font-bold text-gray-900 mb-4">Payment Details</h2>
+          <div className="flex flex-col gap-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-400">Method</span>
+              <span className="font-semibold text-gray-800">{methodLabel[order.payment.method] ?? order.payment.method}</span>
             </div>
-            <div>
-              <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">Payment</p>
-              <p className="font-semibold text-gray-800">{paymentLabel[order.customer.payment]}</p>
-              <p className="text-xs text-gray-400 mt-2">Status</p>
-              <span className="inline-block mt-1 bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full">
-                Pending
+            {order.payment.bank && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Bank</span>
+                <span className="font-semibold text-gray-800">{order.payment.bank}</span>
+              </div>
+            )}
+            {order.payment.accountUsed && (
+              <div className="flex justify-between">
+                <span className="text-gray-400">Account Used</span>
+                <span className="font-semibold text-gray-800">{order.payment.accountUsed}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-gray-400">Reference No.</span>
+              <span className="font-semibold text-gray-800">{order.payment.referenceNumber}</span>
+            </div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-gray-400">Payment Status</span>
+              <span className="bg-yellow-100 text-yellow-700 text-xs font-bold px-3 py-1 rounded-full">
+                {order.payment.status}
               </span>
             </div>
           </div>
@@ -100,9 +140,13 @@ export default function ConfirmationPage() {
           <Link href="/shop" className="flex-1 text-center bg-gray-900 hover:bg-amber-600 text-white font-semibold py-3 rounded-full text-sm transition-colors">
             Continue Shopping
           </Link>
-          <Link href="/" className="flex-1 text-center border border-gray-200 hover:border-gray-400 text-gray-700 font-semibold py-3 rounded-full text-sm transition-colors">
-            Back to Home
+          <Link href="/history" className="flex-1 text-center border border-gray-200 hover:border-gray-400 text-gray-700 font-semibold py-3 rounded-full text-sm transition-colors">
+            View Order History
           </Link>
+          <button onClick={() => window.print()}
+            className="flex-1 text-center border border-gray-200 hover:border-amber-400 hover:text-amber-600 text-gray-700 font-semibold py-3 rounded-full text-sm transition-colors">
+            🖨️ Print Receipt
+          </button>
         </div>
       </div>
     </div>

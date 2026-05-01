@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ProductImage from "@/components/ProductImage";
 import { allProducts } from "@/lib/products";
 import { addToCart } from "@/lib/cart";
+import { toggleWishlist, getWishlist } from "@/lib/wishlist";
+import { showToast } from "@/lib/toast";
 
 const categoryMeta: Record<string, { label: string; description: string }> = {
   bouquet: { label: "Bouquet", description: "Handcrafted floral arrangements for every occasion." },
@@ -17,15 +18,28 @@ const categoryMeta: Record<string, { label: string; description: string }> = {
 export default function CategoryPage() {
   const router = useRouter();
   const { slug } = useParams() as { slug: string };
+  const [wishlist, setWishlist] = useState<number[]>([]);
 
   useEffect(() => {
-    // no redirect — allow guest browsing
+    setWishlist(getWishlist());
+    const sync = () => setWishlist(getWishlist());
+    window.addEventListener("wishlistUpdated", sync);
+    return () => window.removeEventListener("wishlistUpdated", sync);
   }, []);
 
   function handleAddToCart(p: typeof allProducts[0]) {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
     addToCart(p);
     window.dispatchEvent(new Event("cartUpdated"));
+    showToast(`${p.name} added to cart! 🛒`);
+  }
+
+  function handleWishlist(p: typeof allProducts[0]) {
+    if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
+    const updated = toggleWishlist(p.id);
+    setWishlist([...updated]);
+    window.dispatchEvent(new Event("wishlistUpdated"));
+    showToast(updated.includes(p.id) ? `${p.name} added to wishlist! ♥` : `Removed from wishlist`, updated.includes(p.id) ? "success" : "info");
   }
 
   const meta = categoryMeta[slug];
@@ -40,6 +54,7 @@ export default function CategoryPage() {
           <h2 className="text-xl font-bold text-gray-800 mb-2">Category not found</h2>
           <Link href="/categories" className="text-sm text-amber-600 hover:underline">← Back to Categories</Link>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -66,23 +81,31 @@ export default function CategoryPage() {
         {/* Product Grid */}
         <div className="grid grid-cols-3 gap-6">
           {products.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-              <div className="overflow-hidden">
-                <ProductImage src={p.img} alt={p.name} className="w-full h-[260px] object-cover block" />
-              </div>
+            <div key={p.id} className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+              <Link href={`/product/${p.id}`}>
+                <img
+                  src={p.img}
+                  alt={p.name}
+                  onError={(e) => { e.currentTarget.src = "/static/images/products/default.jpg"; }}
+                  className="w-full h-52 object-cover"
+                />
+              </Link>
               <div className="p-4">
-                <h3 className="font-bold text-gray-900">{p.name}</h3>
+                <Link href={`/product/${p.id}`}>
+                  <h3 className="font-bold text-gray-900 hover:text-amber-600 transition-colors">{p.name}</h3>
+                </Link>
                 <p className="text-xs text-gray-400 mt-0.5">{p.subtitle}</p>
                 <div className="flex items-center justify-between mt-3">
                   <span className="text-amber-600 font-bold">₱{p.price}.00</span>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleAddToCart(p)}
-                      className="bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
-                    >
+                    <button onClick={() => handleAddToCart(p)}
+                      className="bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors">
                       Add to Cart
                     </button>
-                    <button className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none">♡</button>
+                    <button onClick={() => handleWishlist(p)}
+                      className={`text-lg leading-none transition-colors ${wishlist.includes(p.id) ? "text-red-400" : "text-gray-300 hover:text-red-400"}`}>
+                      {wishlist.includes(p.id) ? "♥" : "♡"}
+                    </button>
                   </div>
                 </div>
               </div>

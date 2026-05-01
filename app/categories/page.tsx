@@ -1,8 +1,6 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -11,22 +9,22 @@ const categories = [
     name: "Bouquet",
     slug: "bouquet",
     description: "Handcrafted floral arrangements for every occasion.",
-    count: 2,
-    img: "/bouquet.jpg",
+    count: 10,
+    img: "/static/images/products/red-bouquet.jpg",
   },
   {
     name: "Flower Pot",
     slug: "flower-pot",
     description: "Lush potted plants to brighten any space.",
-    count: 2,
-    img: "/flowerpot.jpg",
+    count: 6,
+    img: "/static/images/products/chenipot-daisy.png",
   },
   {
     name: "Keychain",
     slug: "keychain",
     description: "Charming handmade keychains, perfect as gifts.",
-    count: 2,
-    img: "/keychain.jpg",
+    count: 6,
+    img: "/static/images/products/fuzz-mirror.jpg",
   },
 ];
 
@@ -49,11 +47,10 @@ export default function CategoriesPage() {
           {categories.map((cat) => (
             <Link href={`/categories/${cat.slug}`} key={cat.name} className="group bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow overflow-hidden">
               <div className="overflow-hidden">
-                <Image
+                <img
                   src={cat.img}
                   alt={cat.name}
-                  width={400}
-                  height={300}
+                  onError={(e) => { e.currentTarget.src = "/static/images/products/default.jpg"; }}
                   className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
               </div>
