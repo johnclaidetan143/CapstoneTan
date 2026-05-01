@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { getCart, clearCart, CartItem } from "@/lib/cart";
 import { getSavedAddress } from "@/lib/user";
-import { applyPromo } from "@/lib/promo";
 import { saveOrder } from "@/lib/orderHistory";
 import { deductStock } from "@/lib/stock";
 
@@ -25,10 +24,6 @@ export default function CheckoutPage() {
     payment: "", referenceNumber: "",
   });
   const [errors, setErrors] = useState<ErrorState>({});
-  const [promoCode, setPromoCode] = useState("");
-  const [promoDiscount, setPromoDiscount] = useState(0);
-  const [promoMsg, setPromoMsg] = useState("");
-  const [promoError, setPromoError] = useState("");
 
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) router.push("/login");
@@ -43,18 +38,6 @@ export default function CheckoutPage() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
-  }
-
-  function handleApplyPromo() {
-    setPromoMsg(""); setPromoError("");
-    const result = applyPromo(promoCode, cart.reduce((sum, item) => sum + item.price * item.quantity, 0));
-    if (result.valid) {
-      setPromoDiscount(result.discount);
-      setPromoMsg(result.message);
-    } else {
-      setPromoDiscount(0);
-      setPromoError(result.error);
-    }
   }
 
   function selectPayment(value: string) {
@@ -85,9 +68,7 @@ export default function CheckoutPage() {
       orderNumber,
       date: new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
       items: cart,
-      total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0) - promoDiscount,
-      promoCode: promoDiscount > 0 ? promoCode.toUpperCase() : null,
-      promoDiscount,
+      total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
       customer: { name: form.name, phone: form.phone, address: form.address, city: form.city },
       payment: {
         method: form.payment,
@@ -239,36 +220,9 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>Subtotal</span><span>₱{total}.00</span>
                 </div>
-                {promoDiscount > 0 && (
-                  <div className="flex justify-between text-sm text-green-600 font-semibold">
-                    <span>Discount ({promoCode.toUpperCase()})</span>
-                    <span>-₱{promoDiscount}.00</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Shipping</span>
-                  <span className="text-green-500 font-semibold">Free</span>
-                </div>
                 <div className="flex justify-between font-extrabold text-gray-900 text-lg mt-1">
-                  <span>Total</span><span>₱{total - promoDiscount}.00</span>
+                  <span>Total</span><span>₱{total}.00</span>
                 </div>
-              </div>
-
-              {/* Promo Code */}
-              <div className="border-t border-gray-100 mt-4 pt-4">
-                <p className="text-xs font-semibold text-gray-600 mb-2">Promo Code</p>
-                <div className="flex gap-2">
-                  <input value={promoCode}
-                    onChange={(e) => { setPromoCode(e.target.value); setPromoMsg(""); setPromoError(""); }}
-                    placeholder="Enter code (e.g. CHENNI10)"
-                    className="flex-1 border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
-                  <button type="button" onClick={handleApplyPromo}
-                    className="bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold px-4 rounded-xl transition-colors">
-                    Apply
-                  </button>
-                </div>
-                {promoMsg && <p className="text-xs text-green-500 font-semibold mt-1">{promoMsg}</p>}
-                {promoError && <p className="text-xs text-red-400 mt-1">{promoError}</p>}
               </div>
             </div>
 
