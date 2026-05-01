@@ -5,7 +5,7 @@ import { addToCart } from "@/lib/cart";
 import { toggleWishlist, isWishlisted } from "@/lib/wishlist";
 import { showToast } from "@/lib/toast";
 import { getAverageRating, getReviews } from "@/lib/reviews";
-import { getStockLabel } from "@/lib/stock";
+import { getStockLabel, getProductStock } from "@/lib/stock";
 import { useRouter } from "next/navigation";
 import { BOUQUET_SIZES, POT_SIZES } from "@/lib/products";
 
@@ -26,8 +26,9 @@ type Props = {
   onClose: () => void;
 };
 
-export default function QuickView({ product, stock, onClose }: Props) {
+export default function QuickView({ product, stock: initialStock, onClose }: Props) {
   const router = useRouter();
+  const [stock, setStock] = useState(initialStock);
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(isWishlisted(product.id));
 
@@ -48,6 +49,7 @@ export default function QuickView({ product, stock, onClose }: Props) {
     window.dispatchEvent(new Event("cartUpdated"));
     showToast(`${product.name} (${selectedSize || ""}) added to cart! 🛒`);
     setAdded(true);
+    setStock(getProductStock(product.id));
     setTimeout(() => setAdded(false), 2000);
   }
 
@@ -92,6 +94,7 @@ export default function QuickView({ product, stock, onClose }: Props) {
               <div className="flex items-center gap-2">
                 <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">{product.category}</span>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stockLabel.color}`}>{stockLabel.label}</span>
+                {stock > 0 && <span className="text-xs text-gray-400 font-medium">{stock} in stock</span>}
               </div>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none transition-colors">✕</button>
             </div>

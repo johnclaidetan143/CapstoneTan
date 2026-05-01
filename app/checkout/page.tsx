@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 import { getCart, clearCart, CartItem } from "@/lib/cart";
 import { getSavedAddress } from "@/lib/user";
 import { saveOrder } from "@/lib/orderHistory";
-import { deductStock } from "@/lib/stock";
 
 const GCASH = { number: "09XXXXXXXXX", name: "Chenni Craft Shop" };
 
@@ -84,7 +83,6 @@ export default function CheckoutPage() {
     const history = JSON.parse(localStorage.getItem("orderHistory") || "[]");
     const exists = history.find((o: { orderNumber: string }) => o.orderNumber === order.orderNumber);
     if (!exists) saveOrder(order);
-    deductStock(cart.map((i) => ({ productId: i.productId, quantity: i.quantity })));
     clearCart();
     window.dispatchEvent(new Event("cartUpdated"));
     router.push("/confirmation");
