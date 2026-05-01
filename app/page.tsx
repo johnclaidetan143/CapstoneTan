@@ -35,29 +35,35 @@ function FreeShippingBanner() {
   const pad = (n: number) => String(n).padStart(2, "0");
 
   return (
-    <section className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 py-10">
-      <div className="max-w-4xl mx-auto px-6 text-center">
-        <p className="text-xs font-bold tracking-[0.3em] uppercase text-amber-900 mb-2">Limited Time Offer</p>
-        <h2 className="text-3xl font-extrabold text-white mb-1">🚚 FREE SHIPPING — Today Only!</h2>
-        <p className="text-amber-100 text-sm mb-6">Order now and enjoy free shipping on all items. Offer ends at midnight!</p>
+    <section className="bg-[#fafaf8] py-6">
+      <div className="max-w-3xl mx-auto px-6">
+        <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 rounded-2xl px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Left — Text */}
+        <div className="text-center sm:text-left">
+          <p className="text-[10px] font-bold tracking-[0.25em] uppercase text-amber-900 mb-0.5">Limited Time Offer</p>
+          <h2 className="text-lg font-extrabold text-white leading-tight">🚚 FREE SHIPPING — Today Only!</h2>
+          <p className="text-amber-100 text-xs mt-0.5">Offer ends at midnight. Order now!</p>
+        </div>
 
-        {/* Countdown */}
-        <div className="flex items-center justify-center gap-3 mb-6">
-          {[{ label: "Hours", val: timeLeft.h }, { label: "Minutes", val: timeLeft.m }, { label: "Seconds", val: timeLeft.s }].map((t, i) => (
-            <div key={t.label} className="flex items-center gap-3">
-              <div className="bg-white rounded-2xl px-5 py-3 min-w-[72px] text-center shadow-md">
-                <p className="text-3xl font-extrabold text-amber-600 leading-none">{pad(t.val)}</p>
-                <p className="text-xs text-gray-400 font-semibold mt-1 uppercase tracking-wide">{t.label}</p>
+        {/* Center — Countdown */}
+        <div className="flex items-center gap-2">
+          {[{ label: "HRS", val: timeLeft.h }, { label: "MIN", val: timeLeft.m }, { label: "SEC", val: timeLeft.s }].map((t, i) => (
+            <div key={t.label} className="flex items-center gap-2">
+              <div className="bg-white rounded-xl px-3 py-1.5 min-w-[52px] text-center shadow">
+                <p className="text-xl font-extrabold text-amber-600 leading-none">{pad(t.val)}</p>
+                <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide mt-0.5">{t.label}</p>
               </div>
-              {i < 2 && <span className="text-2xl font-extrabold text-white">:</span>}
+              {i < 2 && <span className="text-lg font-extrabold text-white">:</span>}
             </div>
           ))}
         </div>
 
+        {/* Right — CTA */}
         <Link href="/shop"
-          className="inline-block bg-white text-amber-600 font-extrabold px-8 py-3 rounded-full text-sm hover:bg-amber-50 transition-colors shadow-md">
-          Shop Now — Free Shipping 🛒
+          className="bg-white text-amber-600 font-extrabold px-6 py-2.5 rounded-full text-sm hover:bg-amber-50 transition-colors shadow whitespace-nowrap">
+          Shop Now 🛒
         </Link>
+        </div>
       </div>
     </section>
   );

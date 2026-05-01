@@ -8,17 +8,11 @@ import { applyPromo } from "@/lib/promo";
 import { saveOrder } from "@/lib/orderHistory";
 import { deductStock } from "@/lib/stock";
 
-const BANK_DETAILS: Record<string, { account: string; number: string }> = {
-  Landbank: { account: "Chenni Craft Shop", number: "1234-5678-9012" },
-  BDO:      { account: "Chenni Craft Shop", number: "2345-6789-0123" },
-  BPI:      { account: "Chenni Craft Shop", number: "3456-7890-1234" },
-};
-
 const GCASH = { number: "09XXXXXXXXX", name: "Chenni Craft Shop" };
 
 type FormState = {
   name: string; phone: string; address: string; city: string;
-  payment: string; selectedBank: string; referenceNumber: string;
+  payment: string; referenceNumber: string;
 };
 
 type ErrorState = Partial<FormState>;
@@ -28,7 +22,7 @@ export default function CheckoutPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [form, setForm] = useState<FormState>({
     name: "", phone: "", address: "", city: "",
-    payment: "", selectedBank: "", referenceNumber: "",
+    payment: "", referenceNumber: "",
   });
   const [errors, setErrors] = useState<ErrorState>({});
   const [promoCode, setPromoCode] = useState("");
@@ -41,7 +35,6 @@ export default function CheckoutPage() {
     const c = getCart();
     if (c.length === 0) router.push("/orders");
     setCart(c);
-    // Auto-fill saved address
     const saved = getSavedAddress();
     if (saved) setForm((prev) => ({ ...prev, name: saved.name, phone: saved.phone, address: saved.address, city: saved.city }));
   }, [router]);
@@ -65,13 +58,8 @@ export default function CheckoutPage() {
   }
 
   function selectPayment(value: string) {
-    setForm((prev) => ({ ...prev, payment: value, selectedBank: "", referenceNumber: "" }));
-    setErrors((prev) => ({ ...prev, payment: "", selectedBank: "", referenceNumber: "" }));
-  }
-
-  function selectBank(bank: string) {
-    setForm((prev) => ({ ...prev, selectedBank: bank }));
-    setErrors((prev) => ({ ...prev, selectedBank: "" }));
+    setForm((prev) => ({ ...prev, payment: value, referenceNumber: "" }));
+    setErrors((prev) => ({ ...prev, payment: "", referenceNumber: "" }));
   }
 
   function validate(): ErrorState {
@@ -81,8 +69,7 @@ export default function CheckoutPage() {
     if (!form.address.trim()) e.address = "Address is required";
     if (!form.city.trim())    e.city    = "City is required";
     if (!form.payment)        e.payment = "Please select a payment method";
-    if (form.payment === "bank" && !form.selectedBank) e.selectedBank = "Please select a bank";
-    if ((form.payment === "gcash" || form.payment === "bank") && !form.referenceNumber.trim())
+    if (form.payment === "gcash" && !form.referenceNumber.trim())
       e.referenceNumber = "Reference number is required";
     return e;
   }
@@ -104,10 +91,8 @@ export default function CheckoutPage() {
       customer: { name: form.name, phone: form.phone, address: form.address, city: form.city },
       payment: {
         method: form.payment,
-        bank: form.selectedBank || null,
-        accountUsed: form.payment === "gcash"
-          ? GCASH.number
-          : form.selectedBank ? BANK_DETAILS[form.selectedBank].number : null,
+        bank: null,
+        accountUsed: form.payment === "gcash" ? GCASH.number : null,
         referenceNumber: isCOD ? "" : form.referenceNumber,
         status: isCOD ? "Pending Payment" : "Pending Verification",
       },
@@ -115,7 +100,6 @@ export default function CheckoutPage() {
     };
 
     localStorage.setItem("lastOrder", JSON.stringify(order));
-    // Also save directly to order history so Orders page shows it
     const history = JSON.parse(localStorage.getItem("orderHistory") || "[]");
     const exists = history.find((o: { orderNumber: string }) => o.orderNumber === order.orderNumber);
     if (!exists) saveOrder(order);
@@ -126,7 +110,6 @@ export default function CheckoutPage() {
   }
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const bankInfo = form.selectedBank ? BANK_DETAILS[form.selectedBank] : null;
 
   return (
     <div className="min-h-screen bg-[#fafaf8]">
@@ -191,17 +174,13 @@ export default function CheckoutPage() {
 
               <div className="flex flex-col gap-3">
                 {[
-                  { value: "gcash", label: "GCash",              icon: "📱" },
-                  { value: "bank",  label: "Bank / Card Payment", icon: "🏦" },
-                  { value: "cod",   label: "Cash on Delivery",    icon: "💵" },
+                  { value: "gcash", label: "GCash",           icon: "📱" },
+                  { value: "cod",   label: "Cash on Delivery", icon: "💵" },
                 ].map((method) => (
-                  <label
-                    key={method.value}
-                    onClick={() => selectPayment(method.value)}
+                  <label key={method.value} onClick={() => selectPayment(method.value)}
                     className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-colors ${
                       form.payment === method.value ? "border-amber-400 bg-amber-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
+                    }`}>
                     <input type="radio" name="payment" value={method.value}
                       checked={form.payment === method.value} onChange={() => selectPayment(method.value)}
                       className="accent-amber-500" />
@@ -211,14 +190,6 @@ export default function CheckoutPage() {
                 ))}
               </div>
               {errors.payment && <p className="text-xs text-red-400 mt-2">{errors.payment}</p>}
-
-              {/* COD FLOW */}
-              {form.payment === "cod" && (
-                <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-1">Cash on Delivery</p>
-                  <p className="text-sm text-gray-600">Pay when your order arrives. No reference number needed.</p>
-                </div>
-              )}
 
               {/* GCASH FLOW */}
               {form.payment === "gcash" && (
@@ -239,41 +210,11 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* BANK FLOW */}
-              {form.payment === "bank" && (
-                <div className="mt-4 flex flex-col gap-3">
-                  <p className="text-xs font-semibold text-gray-600">Select your bank</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    {Object.keys(BANK_DETAILS).map((bank) => (
-                      <button type="button" key={bank} onClick={() => selectBank(bank)}
-                        className={`border rounded-xl py-2 text-sm font-semibold transition-colors ${
-                          form.selectedBank === bank
-                            ? "border-amber-400 bg-amber-50 text-amber-700"
-                            : "border-gray-200 text-gray-600 hover:border-gray-400"
-                        }`}>
-                        {bank}
-                      </button>
-                    ))}
-                  </div>
-                  {errors.selectedBank && <p className="text-xs text-red-400">{errors.selectedBank}</p>}
-
-                  {bankInfo && (
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                      <p className="text-xs font-bold text-green-600 uppercase tracking-wide mb-2">Send payment to this account</p>
-                      <p className="text-sm text-gray-500">Bank: <span className="font-bold text-gray-800">{form.selectedBank}</span></p>
-                      <p className="text-sm text-gray-500">Account Name: <span className="font-semibold text-gray-700">{bankInfo.account}</span></p>
-                      <p className="text-lg font-extrabold text-gray-900 mt-1">{bankInfo.number}</p>
-                      <p className="text-xs text-gray-400 mt-2">After sending, enter your transaction/reference number below.</p>
-                    </div>
-                  )}
-
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-gray-600">Transaction / Reference Number</label>
-                    <input name="referenceNumber" value={form.referenceNumber} onChange={handleChange}
-                      placeholder="e.g. TXN-1234567890"
-                      className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
-                    {errors.referenceNumber && <p className="text-xs text-red-400">{errors.referenceNumber}</p>}
-                  </div>
+              {/* COD FLOW */}
+              {form.payment === "cod" && (
+                <div className="mt-4 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <p className="text-xs font-bold text-orange-600 uppercase tracking-wide mb-1">Cash on Delivery</p>
+                  <p className="text-sm text-gray-600">Pay when your order arrives. No reference number needed.</p>
                 </div>
               )}
             </div>
@@ -317,12 +258,10 @@ export default function CheckoutPage() {
               <div className="border-t border-gray-100 mt-4 pt-4">
                 <p className="text-xs font-semibold text-gray-600 mb-2">Promo Code</p>
                 <div className="flex gap-2">
-                  <input
-                    value={promoCode}
+                  <input value={promoCode}
                     onChange={(e) => { setPromoCode(e.target.value); setPromoMsg(""); setPromoError(""); }}
                     placeholder="Enter code (e.g. CHENNI10)"
-                    className="flex-1 border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  />
+                    className="flex-1 border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   <button type="button" onClick={handleApplyPromo}
                     className="bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold px-4 rounded-xl transition-colors">
                     Apply

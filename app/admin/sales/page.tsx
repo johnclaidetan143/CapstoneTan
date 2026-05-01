@@ -56,7 +56,7 @@ export default function AdminSalesPage() {
   // Payment method breakdown
   const paymentBreakdown: Record<string, number> = {};
   orders.forEach((o) => {
-    const method = o.payment.method === "gcash" ? "GCash" : "Bank / Card";
+    const method = o.payment.method === "gcash" ? "GCash" : "Cash on Delivery";
     paymentBreakdown[method] = (paymentBreakdown[method] || 0) + 1;
   });
 

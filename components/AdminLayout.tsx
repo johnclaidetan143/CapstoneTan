@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { adminLogout } from "@/lib/admin";
 
 const links = [
+  { href: "/admin/overview",   label: "🏠 Overview" },
   { href: "/admin/dashboard",  label: "📋 Orders" },
   { href: "/admin/products",   label: "📦 Products" },
   { href: "/admin/customers",  label: "👥 Customers" },
@@ -11,6 +12,7 @@ const links = [
   { href: "/admin/promos",     label: "🎟️ Promos & Banners" },
   { href: "/admin/reviews",    label: "⭐ Reviews" },
   { href: "/admin/import",     label: "📥 Bulk Import" },
+  { href: "/admin/settings",   label: "⚙️ Settings" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
