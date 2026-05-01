@@ -1,3 +1,15 @@
+export const BOUQUET_SIZES = [
+  { label: "Small",    priceAdd: 0   },
+  { label: "Standard", priceAdd: 50  },
+  { label: "Large",    priceAdd: 100 },
+];
+
+export const POT_SIZES = [
+  { label: "Small",    priceAdd: 0   },
+  { label: "Standard", priceAdd: 60  },
+  { label: "Large",    priceAdd: 120 },
+];
+
 export const allProducts = [
   // BOUQUET
   { id: 3,  name: "Red Bouquet",              subtitle: "Classic Romance",       price: 120, category: "Bouquet",    slug: "bouquet",    img: "/static/images/products/red-bouquet.jpg",              description: "A stunning red bouquet that speaks the language of love. Crafted with deep red blooms, this arrangement is ideal for romantic occasions, Valentine's Day, or as a heartfelt gift for someone special." },

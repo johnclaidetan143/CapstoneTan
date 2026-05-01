@@ -7,6 +7,7 @@ import { showToast } from "@/lib/toast";
 import { getAverageRating, getReviews } from "@/lib/reviews";
 import { getStockLabel } from "@/lib/stock";
 import { useRouter } from "next/navigation";
+import { BOUQUET_SIZES, POT_SIZES } from "@/lib/products";
 
 type Product = {
   id: number;
@@ -29,16 +30,23 @@ export default function QuickView({ product, stock, onClose }: Props) {
   const router = useRouter();
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(isWishlisted(product.id));
+
+  const sizes = product.category === "Bouquet" ? BOUQUET_SIZES : product.category === "Flower Pot" ? POT_SIZES : null;
+  const [selectedSize, setSelectedSize] = useState(sizes ? sizes[0].label : "");
   const avg = getAverageRating(product.id);
   const reviewCount = getReviews(product.id).length;
   const stockLabel = getStockLabel(stock);
 
+  const sizeObj = sizes?.find((s) => s.label === selectedSize);
+  const finalPrice = product.price + (sizeObj?.priceAdd ?? 0);
+  const productWithSize = { ...product, price: finalPrice, subtitle: sizes ? `${selectedSize} — ${product.subtitle}` : product.subtitle };
+
   function handleAddToCart() {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); onClose(); return; }
     if (stock === 0) { showToast("This item is out of stock.", "error"); return; }
-    addToCart(product);
+    addToCart(productWithSize);
     window.dispatchEvent(new Event("cartUpdated"));
-    showToast(`${product.name} added to cart! 🛒`);
+    showToast(`${product.name} (${selectedSize || ""}) added to cart! 🛒`);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   }
@@ -46,7 +54,7 @@ export default function QuickView({ product, stock, onClose }: Props) {
   function handleBuyNow() {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); onClose(); return; }
     if (stock === 0) { showToast("This item is out of stock.", "error"); return; }
-    addToCart(product);
+    addToCart(productWithSize);
     window.dispatchEvent(new Event("cartUpdated"));
     onClose();
     router.push("/checkout");
@@ -103,7 +111,29 @@ export default function QuickView({ product, stock, onClose }: Props) {
               </div>
             )}
 
-            <p className="text-2xl font-extrabold text-amber-600 mt-3">₱{product.price}.00</p>
+            <p className="text-2xl font-extrabold text-amber-600 mt-3">₱{finalPrice}.00</p>
+
+            {/* Size Selector */}
+            {sizes && (
+              <div className="mt-3">
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Size</p>
+                <div className="flex gap-2">
+                  {sizes.map((s) => (
+                    <button
+                      key={s.label}
+                      onClick={() => setSelectedSize(s.label)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                        selectedSize === s.label
+                          ? "bg-amber-500 text-white border-amber-500"
+                          : "border-gray-200 text-gray-500 hover:border-amber-400"
+                      }`}
+                    >
+                      {s.label}{s.priceAdd > 0 ? ` +₱${s.priceAdd}` : ""}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Description */}
             <p className="text-sm text-gray-500 mt-3 leading-relaxed line-clamp-4">
