@@ -7,13 +7,12 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  async function handleRegister(e: React.FormEvent) {
+  function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -22,28 +21,13 @@ export default function RegisterPage() {
       return;
     }
 
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
-      });
+    localStorage.setItem("registeredUser", JSON.stringify({
+      name: form.name,
+      email: form.email,
+      password: form.password,
+    }));
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Registration failed.");
-        setLoading(false);
-        return;
-      }
-
-      localStorage.setItem("registeredUser", JSON.stringify({ name: form.name, email: form.email, password: form.password }));
-      router.push("/login");
-    } catch {
-      setError("Something went wrong. Please try again.");
-      setLoading(false);
-    }
+    router.push("/login");
   }
 
   return (
@@ -57,69 +41,40 @@ export default function RegisterPage() {
         <form onSubmit={handleRegister} className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-600">Full Name</label>
-            <input
-              name="name"
-              type="text"
-              placeholder="Enter your full name"
-              value={form.name}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
-            />
+            <input name="name" type="text" placeholder="Enter your full name"
+              value={form.name} onChange={handleChange} required
+              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-600">Email</label>
-            <input
-              name="email"
-              type="email"
-              placeholder="Enter your email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
-            />
+            <input name="email" type="email" placeholder="Enter your email"
+              value={form.email} onChange={handleChange} required
+              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-600">Password</label>
-            <input
-              name="password"
-              type="password"
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
-            />
+            <input name="password" type="password" placeholder="Enter your password"
+              value={form.password} onChange={handleChange} required
+              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-600">Confirm Password</label>
-            <input
-              name="confirm"
-              type="password"
-              placeholder="Re-enter your password"
-              value={form.confirm}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
-            />
+            <input name="confirm" type="password" placeholder="Re-enter your password"
+              value={form.confirm} onChange={handleChange} required
+              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
           </div>
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700 disabled:opacity-60"
-          >
-            {loading ? "Registering..." : "Register"}
+          <button type="submit"
+            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700">
+            Register
           </button>
         </form>
 
         <p className="text-xs text-center text-gray-400 mt-4">
           Already have an account?{" "}
-          <Link href="/login" className="text-gray-700 font-semibold">
-            Log In
-          </Link>
+          <Link href="/login" className="text-gray-700 font-semibold">Log In</Link>
         </p>
       </div>
     </div>
