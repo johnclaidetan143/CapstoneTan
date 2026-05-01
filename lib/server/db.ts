@@ -7,17 +7,28 @@ async function ensureFile(filePath: string) {
   try {
     await fs.access(filePath);
   } catch {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.writeFile(filePath, "[]", "utf8");
+    // Only create the file if it truly does not exist
+    try {
+      await fs.mkdir(path.dirname(filePath), { recursive: true });
+      // Check once more before writing to avoid race conditions
+      await fs.access(filePath);
+    } catch {
+      await fs.writeFile(filePath, "[]", "utf8");
+    }
   }
 }
 
 export async function readJsonArray<T>(filename: string): Promise<T[]> {
   const filePath = path.join(dataDir, filename);
-  await ensureFile(filePath);
-  const raw = await fs.readFile(filePath, "utf8");
-  const parsed = JSON.parse(raw || "[]");
-  return Array.isArray(parsed) ? parsed : [];
+  try {
+    const raw = await fs.readFile(filePath, "utf8");
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    // File doesn't exist yet — create it and return empty
+    await ensureFile(filePath);
+    return [];
+  }
 }
 
 export async function writeJsonArray<T>(filename: string, data: T[]): Promise<void> {

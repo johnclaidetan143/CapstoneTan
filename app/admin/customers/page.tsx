@@ -25,15 +25,20 @@ export default function AdminCustomersPage() {
       map[key].totalSpent += o.total;
       map[key].lastOrder = o.date;
     });
-    try {
-      const stored = localStorage.getItem("registeredUser");
-      if (stored) {
-        const user = JSON.parse(stored);
-        if (!map[user.name]) map[user.name] = { name: user.name, email: user.email, phone: user.phone || "", orderCount: 0, totalSpent: 0, lastOrder: "—" };
-        else map[user.name].email = user.email;
-      }
-    } catch {}
-    setCustomers(Object.values(map).sort((a, b) => b.totalSpent - a.totalSpent));
+    // Merge all registered users from API
+    fetch("/api/users")
+      .then((r) => r.json())
+      .then((d) => {
+        const apiUsers: { name: string; email: string }[] = d.users ?? [];
+        apiUsers.forEach((u) => {
+          if (!map[u.name]) map[u.name] = { name: u.name, email: u.email, phone: "", orderCount: 0, totalSpent: 0, lastOrder: "—" };
+          else if (!map[u.name].email) map[u.name].email = u.email;
+        });
+        setCustomers(Object.values(map).sort((a, b) => b.totalSpent - a.totalSpent));
+      })
+      .catch(() => {
+        setCustomers(Object.values(map).sort((a, b) => b.totalSpent - a.totalSpent));
+      });
   }, [router]);
 
   if (!mounted) return null;

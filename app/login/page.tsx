@@ -2,35 +2,47 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-const ADMIN_EMAIL = "admin@chenni.com";
-const ADMIN_PASSWORD = "admin123";
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    // Check if admin credentials
-    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      localStorage.setItem("adminLoggedIn", "true");
-      router.push("/admin/overview");
-      return;
-    }
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+      });
 
-    // Check regular user
-    const stored = localStorage.getItem("registeredUser");
-    if (!stored) { setError("No account found. Please register first."); return; }
-    const user = JSON.parse(stored);
-    if (email === user.email && password === user.password) {
-      localStorage.setItem("loggedIn", "true");
-      router.push("/");
-    } else {
-      setError("Invalid email or password.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Invalid email or password.");
+        return;
+      }
+
+      const user = data.user;
+
+      if (user.role === "admin") {
+        localStorage.setItem("adminLoggedIn", "true");
+        localStorage.setItem("adminUser", JSON.stringify(user));
+        router.push("/admin/dashboard");
+      } else {
+        localStorage.setItem("loggedIn", "true");
+        localStorage.setItem("registeredUser", JSON.stringify(user));
+        router.push("/");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -63,9 +75,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700"
+            disabled={loading}
+            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700 disabled:opacity-60"
           >
-            Log In
+            {loading ? "Logging in..." : "Log In"}
           </button>
         </form>
 

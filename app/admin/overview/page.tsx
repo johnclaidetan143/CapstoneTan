@@ -3,14 +3,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
-import { getOrderHistory, OrderRecord } from "@/lib/orderHistory";
 import { isAdminLoggedIn } from "@/lib/admin";
 import { getLowStockProducts } from "@/lib/stock";
 import { getAllReviews } from "@/lib/reviews";
 
+type Order = { orderNumber: string; date: string; total: number; trackingStatus: string; customer: { name: string } };
+
 export default function AdminOverviewPage() {
   const router = useRouter();
-  const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [lowStock, setLowStock] = useState<{ id: number; name: string; qty: number }[]>([]);
   const [reviewCount, setReviewCount] = useState(0);
   const [mounted, setMounted] = useState(false);
@@ -18,7 +19,10 @@ export default function AdminOverviewPage() {
   useEffect(() => {
     setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
-    setOrders(getOrderHistory());
+    fetch("/api/orders")
+      .then((r) => r.json())
+      .then((d) => setOrders(d.orders ?? []))
+      .catch(() => {});
     setLowStock(getLowStockProducts());
     setReviewCount(getAllReviews().length);
   }, [router]);

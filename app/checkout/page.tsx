@@ -56,19 +56,23 @@ export default function CheckoutPage() {
     return e;
   }
 
-  function handlePlaceOrder(e: React.FormEvent) {
+  async function handlePlaceOrder(e: React.FormEvent) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     const isCOD = form.payment === "cod";
     const orderNumber = "CCH-" + Date.now().toString().slice(-6);
+    const storedUser = localStorage.getItem("registeredUser");
+    const userEmail = storedUser ? JSON.parse(storedUser).email : "";
+
     const order = {
       orderNumber,
       date: new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
       items: cart,
       total: cart.reduce((sum, item) => sum + item.price * item.quantity, 0),
       customer: { name: form.name, phone: form.phone, address: form.address, city: form.city },
+      customerEmail: userEmail,
       payment: {
         method: form.payment,
         bank: null,
@@ -79,10 +83,23 @@ export default function CheckoutPage() {
       trackingStatus: "Pending Verification" as const,
     };
 
+    // Save to localStorage for customer-side history
     localStorage.setItem("lastOrder", JSON.stringify(order));
     const history = JSON.parse(localStorage.getItem("orderHistory") || "[]");
     const exists = history.find((o: { orderNumber: string }) => o.orderNumber === order.orderNumber);
     if (!exists) saveOrder(order);
+
+    // Save to server so admin can see it
+    try {
+      await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(order),
+      });
+    } catch {
+      // Non-blocking — order is already saved locally
+    }
+
     clearCart();
     window.dispatchEvent(new Event("cartUpdated"));
     router.push("/confirmation");
