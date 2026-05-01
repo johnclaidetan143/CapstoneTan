@@ -6,8 +6,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-3 gap-8">
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xl">🌸</span>
-            <p className="font-bold text-lg">Chenni Craft Shop</p>
+            <img src="/logo.png" alt="Chenni Craft Shop" className="h-10 w-auto object-contain" />
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">
             Bringing nature's beauty to your doorstep. Handcrafted bouquets and botanical treasures.

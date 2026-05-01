@@ -56,11 +56,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-2xl">🌸</span>
-          <div>
-            <p className="text-lg font-bold text-gray-900 leading-none">Chenni</p>
-            <p className="text-xs text-amber-600 tracking-widest uppercase font-semibold">Craft Shop</p>
-          </div>
+          <img src="/logo.png" alt="Chenni Craft Shop" className="h-10 w-auto object-contain" />
         </Link>
 
         {/* Nav Links */}

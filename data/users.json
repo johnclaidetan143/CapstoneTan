@@ -38,5 +38,13 @@
     "password": "123456",
     "role": "customer",
     "createdAt": "2026-05-01T10:02:52.898Z"
+  },
+  {
+    "id": "usr_1777629970438_84wpuu",
+    "name": "tan",
+    "email": "tan2@gmail.com",
+    "password": "123456",
+    "role": "customer",
+    "createdAt": "2026-05-01T10:06:10.438Z"
   }
 ]
