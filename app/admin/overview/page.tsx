@@ -13,13 +13,17 @@ export default function AdminOverviewPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [lowStock, setLowStock] = useState<{ id: number; name: string; qty: number }[]>([]);
   const [reviewCount, setReviewCount] = useState(0);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     setOrders(getOrderHistory());
     setLowStock(getLowStockProducts());
     setReviewCount(getAllReviews().length);
   }, [router]);
+
+  if (!mounted) return null;
 
   const today = new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" });
   const todayOrders = orders.filter((o) => o.date === today);

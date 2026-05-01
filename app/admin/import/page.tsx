@@ -14,8 +14,14 @@ export default function AdminImportPage() {
   const [preview, setPreview] = useState<Omit<AdminProduct, "id">[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { if (!isAdminLoggedIn()) { router.push("/admin"); return; } }, [router]);
+  useEffect(() => {
+    setMounted(true);
+    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+  }, [router]);
+
+  if (!mounted) return null;
 
   function parseCSV(text: string) {
     const lines = text.trim().split("\n").filter(Boolean);

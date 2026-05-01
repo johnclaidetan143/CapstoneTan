@@ -12,11 +12,15 @@ export default function AdminSettingsPage() {
   const [adminEmail, setAdminEmail] = useState("admin@chenni.com");
   const [adminName, setAdminName] = useState("Admin");
   const [profileMsg, setProfileMsg] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     try { const p = localStorage.getItem("adminProfile"); if (p) { const parsed = JSON.parse(p); setAdminEmail(parsed.email || "admin@chenni.com"); setAdminName(parsed.name || "Admin"); } } catch {}
   }, [router]);
+
+  if (!mounted) return null;
 
   function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();

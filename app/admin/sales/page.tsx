@@ -8,11 +8,15 @@ import { isAdminLoggedIn } from "@/lib/admin";
 export default function AdminSalesPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     setOrders(getOrderHistory());
   }, [router]);
+
+  if (!mounted) return null;
 
   const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
   const deliveredOrders = orders.filter((o) => o.trackingStatus === "Delivered");

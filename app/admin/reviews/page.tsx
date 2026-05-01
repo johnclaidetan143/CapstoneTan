@@ -13,12 +13,16 @@ export default function AdminReviewsPage() {
   const [reviews, setReviews] = useState<ReviewWithReply[]>([]);
   const [replyText, setReplyText] = useState<Record<number, string>>({});
   const [search, setSearch] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     const stored = localStorage.getItem("reviews");
     setReviews(stored ? JSON.parse(stored) : []);
   }, [router]);
+
+  if (!mounted) return null;
 
   function handleReply(id: number) {
     const text = replyText[id]?.trim(); if (!text) return;

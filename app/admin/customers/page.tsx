@@ -11,8 +11,10 @@ export default function AdminCustomersPage() {
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     const orders = getOrderHistory();
     const map: Record<string, Customer> = {};
@@ -33,6 +35,8 @@ export default function AdminCustomersPage() {
     } catch {}
     setCustomers(Object.values(map).sort((a, b) => b.totalSpent - a.totalSpent));
   }, [router]);
+
+  if (!mounted) return null;
 
   const filtered = customers.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase()));
 

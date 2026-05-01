@@ -20,12 +20,16 @@ export default function AdminProductsPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("All");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     setProducts(getAdminProducts());
     setStock(getStock());
   }, [router]);
+
+  if (!mounted) return null;
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = e.target;

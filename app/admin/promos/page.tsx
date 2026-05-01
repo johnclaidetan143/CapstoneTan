@@ -13,12 +13,16 @@ export default function AdminPromosPage() {
   const [promoForm, setPromoForm] = useState({ code: "", type: "percent" as "percent"|"fixed", value: 0, minOrder: 0, expiresAt: "" });
   const [newAnn, setNewAnn] = useState({ message: "", type: "sale" as Announcement["type"] });
   const [tab, setTab] = useState<"promos"|"announcements">("promos");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     setPromos(getPromoCodes());
     setAnnouncements(getAnnouncements());
   }, [router]);
+
+  if (!mounted) return null;
 
   function handleAddPromo(e: React.FormEvent) {
     e.preventDefault();

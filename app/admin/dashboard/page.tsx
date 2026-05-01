@@ -33,12 +33,16 @@ export default function AdminDashboardPage() {
   const [lowStock, setLowStock] = useState<{ id: number; name: string; qty: number }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     setOrders(getOrderHistory());
     setLowStock(getLowStockProducts());
   }, [router]);
+
+  if (!mounted) return null;
 
   function persist(updated: OrderRecord[]) {
     setOrders(updated);
