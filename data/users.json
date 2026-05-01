@@ -14,5 +14,29 @@
     "password": "123456",
     "role": "customer",
     "createdAt": "2026-05-01T09:20:10.230Z"
+  },
+  {
+    "id": "usr_1777629682403_7m4d8q",
+    "name": "tan",
+    "email": "tan@gmail.com",
+    "password": "123456",
+    "role": "customer",
+    "createdAt": "2026-05-01T10:01:22.403Z"
+  },
+  {
+    "id": "usr_1777629740273_ltkmkv",
+    "name": "maria cacao",
+    "email": "tan1@gmail.com",
+    "password": "123456",
+    "role": "customer",
+    "createdAt": "2026-05-01T10:02:20.273Z"
+  },
+  {
+    "id": "usr_1777629772898_n9yyoy",
+    "name": "maria cacao",
+    "email": "claide@gmail.com",
+    "password": "123456",
+    "role": "customer",
+    "createdAt": "2026-05-01T10:02:52.898Z"
   }
 ]

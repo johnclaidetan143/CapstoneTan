@@ -38,6 +38,7 @@ export default function RegisterPage() {
         return;
       }
 
+      localStorage.setItem("registeredUser", JSON.stringify({ name: form.name, email: form.email, password: form.password }));
       router.push("/login");
     } catch {
       setError("Something went wrong. Please try again.");
