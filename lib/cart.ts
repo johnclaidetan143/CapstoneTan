@@ -18,7 +18,7 @@ export function getCart(): CartItem[] {
 export function addToCart(product: { id: number; name: string; subtitle: string; price: number; img: string }) {
   const cart = getCart();
   const existing = cart.find((item) => item.productId === product.id);
-  
+
   if (existing) {
     existing.quantity += 1;
   } else {
@@ -31,10 +31,13 @@ export function addToCart(product: { id: number; name: string; subtitle: string;
       quantity: 1,
     });
   }
-  
+
   localStorage.setItem("cart", JSON.stringify(cart));
   deductStock([{ productId: product.id, quantity: 1 }]);
-  return cart;(productId: number, quantity: number) {
+  return cart;
+}
+
+export function updateQuantity(productId: number, quantity: number) {
   const cart = getCart();
   const item = cart.find((i) => i.productId === productId);
   if (item) item.quantity = quantity;
