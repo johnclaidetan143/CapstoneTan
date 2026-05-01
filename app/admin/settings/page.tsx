@@ -14,7 +14,7 @@ export default function AdminSettingsPage() {
   const [profileMsg, setProfileMsg] = useState("");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
     const stored = localStorage.getItem("adminProfile");
     if (stored) {
       const p = JSON.parse(stored);

@@ -13,6 +13,7 @@ export type UserRecord = {
   name: string;
   email: string;
   password: string;
+  role: "admin" | "customer";
   createdAt: string;
 };
 

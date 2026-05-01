@@ -7,19 +7,42 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleRegister(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
+
     if (form.password !== form.confirm) {
       setError("Passwords do not match.");
       return;
     }
-    localStorage.setItem("registeredUser", JSON.stringify({ name: form.name, email: form.email, password: form.password }));
-    router.push("/login");
+
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Registration failed.");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/login");
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -84,9 +107,10 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700"
+            disabled={loading}
+            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700 disabled:opacity-60"
           >
-            Register
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
 

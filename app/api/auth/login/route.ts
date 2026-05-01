@@ -2,13 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { readJsonArray } from "@/lib/server/db";
 import type { UserRecord } from "@/lib/server-types";
 
-type LoginBody = {
-  email?: string;
-  password?: string;
-};
-
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as LoginBody;
+  const body = await req.json();
   const email = body.email?.trim().toLowerCase();
   const password = body.password;
 
@@ -16,18 +11,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Email and password are required." }, { status: 400 });
   }
 
-  const users = await readJsonArray<UserRecord>("users.json");
-  const user = users.find((u) => u.email === email && u.password === password);
+  // Check hardcoded admin from env (works on Vercel where filesystem is read-only)
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@gmail.com").toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
 
-  if (!user) {
-    return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
+  if (email === adminEmail && password.trim() === adminPassword.trim()) {
+    return NextResponse.json({
+      message: "Login successful.",
+      user: { id: "usr_admin_001", name: "Admin", email: adminEmail, role: "admin" },
+    }, { status: 200 });
   }
 
-  return NextResponse.json(
-    {
+  // Check registered users from file
+  try {
+    const users = await readJsonArray<UserRecord>("users.json");
+    const user = users.find((u) => u.email === email && u.password === password);
+
+    if (!user) {
+      return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
+    }
+
+    return NextResponse.json({
       message: "Login successful.",
-      user: { id: user.id, name: user.name, email: user.email },
-    },
-    { status: 200 }
-  );
+      user: { id: user.id, name: user.name, email: user.email, role: user.role || "customer" },
+    }, { status: 200 });
+  } catch {
+    return NextResponse.json({ message: "Invalid email or password." }, { status: 401 });
+  }
 }

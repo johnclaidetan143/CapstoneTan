@@ -22,7 +22,7 @@ export default function AdminImportPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
   }, [router]);
 
   function parseCSV(text: string): Omit<AdminProduct, "id">[] {

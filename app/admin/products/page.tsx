@@ -23,7 +23,7 @@ export default function AdminProductsPage() {
   const [filterCat, setFilterCat] = useState("All");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
     setProducts(getAdminProducts());
     setStock(getStock());
   }, [router]);

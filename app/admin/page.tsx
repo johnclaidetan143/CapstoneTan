@@ -1,24 +1,46 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { setAdminSession } from "@/lib/admin";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    const validEmail = "admin@chenni.com";
-    const validPassword = "admin123";
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (email.trim().toLowerCase() === validEmail && password === validPassword) {
-      localStorage.setItem("adminLoggedIn", "true");
-      router.push("/admin/overview");
-    } else {
-      setError("Invalid email or password.");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Invalid email or password.");
+        setLoading(false);
+        return;
+      }
+
+      if (data.user.role !== "admin") {
+        setError("Access denied. Admin accounts only.");
+        setLoading(false);
+        return;
+      }
+
+      setAdminSession(data.user);
+      router.replace("/admin/overview");
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
     }
   }
 
@@ -39,7 +61,7 @@ export default function AdminLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="admin@chenni.com"
+              placeholder="admin@gmail.com"
               className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
             />
           </div>
@@ -57,17 +79,12 @@ export default function AdminLoginPage() {
           {error && <p className="text-xs text-red-400 font-semibold">{error}</p>}
           <button
             type="submit"
-            className="bg-gray-900 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-full text-sm transition-colors"
+            disabled={loading}
+            className="bg-gray-900 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-full text-sm transition-colors disabled:opacity-60"
           >
-            Login as Admin
+            {loading ? "Logging in..." : "Login as Admin"}
           </button>
         </form>
-
-        <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-          <p className="text-xs text-amber-700 font-bold mb-1">Admin Credentials</p>
-          <p className="text-xs text-gray-700">📧 admin@chenni.com</p>
-          <p className="text-xs text-gray-700">🔑 admin123</p>
-        </div>
       </div>
     </div>
   );

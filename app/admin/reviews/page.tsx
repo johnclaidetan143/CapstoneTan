@@ -15,7 +15,7 @@ export default function AdminReviewsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
     const stored = localStorage.getItem("reviews");
     setReviews(stored ? JSON.parse(stored) : []);
   }, [router]);

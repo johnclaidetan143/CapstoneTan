@@ -4,15 +4,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { adminLogout } from "@/lib/admin";
 
 const links = [
-  { href: "/admin/overview",   label: "🏠 Overview" },
-  { href: "/admin/dashboard",  label: "📋 Orders" },
-  { href: "/admin/products",   label: "📦 Products" },
-  { href: "/admin/customers",  label: "👥 Customers" },
-  { href: "/admin/sales",      label: "📊 Sales" },
-  { href: "/admin/promos",     label: "🎟️ Promos & Banners" },
-  { href: "/admin/reviews",    label: "⭐ Reviews" },
-  { href: "/admin/import",     label: "📥 Bulk Import" },
-  { href: "/admin/settings",   label: "⚙️ Settings" },
+  { href: "/admin/overview",  label: "🏠 Overview" },
+  { href: "/admin/dashboard", label: "📋 Orders" },
+  { href: "/admin/products",  label: "📦 Products" },
+  { href: "/admin/customers", label: "👥 Customers" },
+  { href: "/admin/sales",     label: "📊 Sales" },
+  { href: "/admin/promos",    label: "🎟️ Promos & Banners" },
+  { href: "/admin/reviews",   label: "⭐ Reviews" },
+  { href: "/admin/settings",  label: "⚙️ Settings" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -21,12 +20,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   function handleLogout() {
     adminLogout();
-    router.push("/admin");
+    router.replace("/admin");
   }
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
       <aside className="w-56 bg-gray-900 text-white flex flex-col py-8 px-4 gap-2 fixed h-full">
         <div className="mb-6 px-2">
           <span className="text-2xl">🌸</span>
@@ -48,8 +46,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </button>
         </div>
       </aside>
-
-      {/* Main Content */}
       <main className="ml-56 flex-1 p-8">
         {children}
       </main>

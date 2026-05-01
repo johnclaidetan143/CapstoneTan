@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "usr_admin_001",
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "password": "admin123",
+    "role": "admin",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "usr_1777627210230_zdsf5o",
+    "name": "tan",
+    "email": "admin1@gmail.com",
+    "password": "123456",
+    "role": "customer",
+    "createdAt": "2026-05-01T09:20:10.230Z"
+  }
+]

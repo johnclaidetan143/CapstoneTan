@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     name,
     email,
     password,
+    role: "customer",
     createdAt: new Date().toISOString(),
   };
 

@@ -35,7 +35,7 @@ export default function AdminDashboardPage() {
   const [bulkStatus, setBulkStatus] = useState("");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
     setOrders(getOrderHistory());
     setLowStock(getLowStockProducts());
   }, [router]);

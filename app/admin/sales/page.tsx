@@ -11,7 +11,7 @@ export default function AdminSalesPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
     setOrders(getOrderHistory());
   }, [router]);
 

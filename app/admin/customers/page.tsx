@@ -20,7 +20,7 @@ export default function AdminCustomersPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
 
     // Build customer list from order history + registered user
     const orders = getOrderHistory();

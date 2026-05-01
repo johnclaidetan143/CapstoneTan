@@ -17,7 +17,7 @@ export default function AdminPromosPage() {
   const [tab, setTab] = useState<"promos" | "announcements">("promos");
 
   useEffect(() => {
-    if (!isAdminLoggedIn()) { router.push("/admin"); return; }
+    if (!isAdminLoggedIn()) { router.replace("/admin"); return; }
     setPromos(getPromoCodes());
     setAnnouncements(getAnnouncements());
   }, [router]);
