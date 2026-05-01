@@ -91,9 +91,7 @@ export default function QuickView({ product, stock, onClose }: Props) {
             <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">{product.category}</span>
-                {stockLabel && (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stockLabel.color}`}>{stockLabel.label}</span>
-                )}
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${stockLabel.color}`}>{stockLabel.label}</span>
               </div>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-700 text-xl leading-none transition-colors">✕</button>
             </div>

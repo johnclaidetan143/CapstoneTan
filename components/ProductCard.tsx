@@ -63,7 +63,7 @@ export default function ProductCard({ product: p, stock, wishlisted, badge, onWi
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1">
             {badge && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>}
-            {stockLabel && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stockLabel.color}`}>{stockLabel.label}</span>}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${stockLabel.color}`}>{stockLabel.label}</span>
           </div>
 
           {/* Quick View overlay */}

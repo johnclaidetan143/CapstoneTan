@@ -48,11 +48,11 @@ export function restoreStock(items: { productId: number; quantity: number }[]) {
   localStorage.setItem("stockMap", JSON.stringify(stock));
 }
 
-export function getStockLabel(qty: number): { label: string; color: string } | null {
+export function getStockLabel(qty: number): { label: string; color: string } {
   if (qty === 0) return { label: "Out of Stock", color: "bg-red-100 text-red-600" };
   if (qty <= 3)  return { label: `Only ${qty} left!`, color: "bg-orange-100 text-orange-600" };
   if (qty <= 5)  return { label: `${qty} left`, color: "bg-yellow-100 text-yellow-600" };
-  return null;
+  return { label: "Available", color: "bg-green-100 text-green-600" };
 }
 
 export function getLowStockProducts(): { id: number; name: string; qty: number }[] {
