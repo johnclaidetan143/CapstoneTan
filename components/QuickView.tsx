@@ -43,6 +43,15 @@ export default function QuickView({ product, stock, onClose }: Props) {
     setTimeout(() => setAdded(false), 2000);
   }
 
+  function handleBuyNow() {
+    if (!localStorage.getItem("loggedIn")) { router.push("/login"); onClose(); return; }
+    if (stock === 0) { showToast("This item is out of stock.", "error"); return; }
+    addToCart(product);
+    window.dispatchEvent(new Event("cartUpdated"));
+    onClose();
+    router.push("/checkout");
+  }
+
   function handleWishlist() {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); onClose(); return; }
     const updated = toggleWishlist(product.id);
@@ -118,6 +127,12 @@ export default function QuickView({ product, stock, onClose }: Props) {
                   : "bg-gray-900 hover:bg-amber-600 text-white"
                 }`}>
                 {stock === 0 ? "Out of Stock" : added ? "✓ Added!" : "Add to Cart"}
+              </button>
+              <button onClick={handleBuyNow} disabled={stock === 0}
+                className={`flex-1 font-bold py-2.5 rounded-full text-sm transition-colors ${
+                  stock === 0 ? "bg-gray-200 text-gray-400 cursor-not-allowed" : "bg-amber-500 hover:bg-amber-400 text-white"
+                }`}>
+                Buy Now
               </button>
               <button onClick={handleWishlist}
                 className={`w-11 h-11 rounded-full border flex items-center justify-center text-lg transition-colors ${
