@@ -2,6 +2,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const ADMIN_EMAIL = "admin@chenni.com";
+const ADMIN_PASSWORD = "admin123";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -10,6 +13,16 @@ export default function LoginPage() {
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    setError("");
+
+    // Check if admin credentials
+    if (email.trim().toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      localStorage.setItem("adminLoggedIn", "true");
+      router.push("/admin/overview");
+      return;
+    }
+
+    // Check regular user
     const stored = localStorage.getItem("registeredUser");
     if (!stored) { setError("No account found. Please register first."); return; }
     const user = JSON.parse(stored);
@@ -58,9 +71,7 @@ export default function LoginPage() {
 
         <p className="text-xs text-center text-gray-400 mt-4">
           No account yet?{" "}
-          <a href="/register" className="text-gray-700 font-semibold">
-            Register
-          </a>
+          <a href="/register" className="text-gray-700 font-semibold">Register</a>
         </p>
       </div>
     </div>
