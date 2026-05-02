@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const statusMessages: Record<string, { subject: string; emoji: string; message: string }> = {
   "Confirmed":  { subject: "Your order has been confirmed! 🎉", emoji: "📦", message: "Great news! Your order has been confirmed and is being prepared." },
   "Shipped":    { subject: "Your order is on its way! 🚚",      emoji: "🚚", message: "Your order has been shipped and is on its way to you!" },
@@ -26,6 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
       from: "Cheni Craft <onboarding@resend.dev>",
       to: customerEmail,
