@@ -15,6 +15,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState<"register" | "otp">("register");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [resending, setResending] = useState(false);
+  const [fallbackOtp, setFallbackOtp] = useState("");
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {

@@ -7,13 +7,14 @@ import Footer from "@/components/Footer";
 import { getOrderHistory, OrderRecord } from "@/lib/orderHistory";
 import { getAverageRating } from "@/lib/reviews";
 
-const STEPS = ["Pending Verification", "Confirmed", "Shipped", "Delivered"] as const;
+const STEPS = ["Pending Verification", "Confirmed", "Shipped", "Delivered", "Received"] as const;
 
 const statusColor: Record<string, string> = {
   "Pending Verification": "bg-yellow-100 text-yellow-700",
   "Confirmed":            "bg-blue-100 text-blue-700",
   "Shipped":              "bg-purple-100 text-purple-700",
   "Delivered":            "bg-green-100 text-green-700",
+  "Received":             "bg-emerald-100 text-emerald-700",
   "Cancelled":            "bg-red-100 text-red-600",
 };
 
@@ -106,7 +107,7 @@ export default function HistoryPage() {
     }
   }, [router]);
 
-  const STATUS_FILTERS = ["All", "Pending Verification", "Pending Payment", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+  const STATUS_FILTERS = ["All", "Pending Verification", "Pending Payment", "Confirmed", "Shipped", "Delivered", "Received", "Cancelled"];
 
   const filtered = orders
     .filter((o) => filterStatus === "All" || o.trackingStatus === filterStatus)

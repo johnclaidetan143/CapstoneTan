@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -13,36 +12,25 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
 
-    // Check if email exists in profiles
-    const { data } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email.trim().toLowerCase())
-      .single();
+      if (!res.ok) {
+        setError(data.message || "Failed to send reset email.");
+        return;
+      }
 
-    if (!data) {
-      setError("No account found with this email.");
+      setSent(true);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Generate a reset token and save it
-    const token = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const expires = new Date(Date.now() + 1000 * 60 * 30).toISOString(); // 30 min
-
-    await supabase.from("profiles").update({ reset_token: token, reset_expires: expires })
-      .eq("email", email.trim().toLowerCase());
-
-    // Send email via our email API
-    await fetch("/api/email/reset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: email.trim().toLowerCase(), token }),
-    });
-
-    setSent(true);
-    setLoading(false);
   }
 
   return (

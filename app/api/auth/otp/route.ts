@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseServer } from "@/lib/supabase-server";
 
 async function sendOtpEmail(email: string, otp: string, name: string) {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -46,23 +46,29 @@ async function sendOtpEmail(email: string, otp: string, name: string) {
 export async function POST(req: NextRequest) {
   const { email } = await req.json();
   if (!email) return NextResponse.json({ message: "Email required." }, { status: 400 });
+  const normalizedEmail = email.toLowerCase().trim();
 
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expires = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
   // Get user name for email
-  const { data: profile } = await supabase.from("profiles").select("name").eq("email", email.toLowerCase()).single();
+  const { data: profile } = await supabaseServer.from("profiles").select("name").eq("email", normalizedEmail).single();
 
-  await supabase.from("profiles")
+  const { error: updateError } = await supabaseServer.from("profiles")
     .update({ otp_code: otp, otp_expires: expires })
-    .eq("email", email.toLowerCase());
+    .eq("email", normalizedEmail);
+
+  if (updateError) {
+    console.error("[OTP update error]", updateError);
+    return NextResponse.json({ message: "Could not generate OTP. Please try again." }, { status: 500 });
+  }
 
   try {
-    await sendOtpEmail(email, otp, profile?.name || "");
+    await sendOtpEmail(normalizedEmail, otp, profile?.name || "");
     return NextResponse.json({ message: "OTP sent to your email." }, { status: 200 });
   } catch (err) {
     console.error("[OTP email error]", err);
-    // Still return success but include OTP for fallback
+    // Return OTP as fallback if email fails
     return NextResponse.json({ message: "OTP generated.", otp }, { status: 200 });
   }
 }
@@ -71,17 +77,29 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const { email, otp } = await req.json();
   if (!email || !otp) return NextResponse.json({ message: "Email and OTP required." }, { status: 400 });
+  const normalizedEmail = email.toLowerCase().trim();
+  const normalizedOtp = String(otp).trim();
 
-  const { data } = await supabase.from("profiles")
+  const { data } = await supabaseServer.from("profiles")
     .select("otp_code, otp_expires, id, name, email, role")
-    .eq("email", email.toLowerCase())
+    .eq("email", normalizedEmail)
     .single();
 
   if (!data) return NextResponse.json({ message: "User not found." }, { status: 404 });
-  if (data.otp_code !== otp) return NextResponse.json({ message: "Invalid OTP code." }, { status: 401 });
-  if (new Date(data.otp_expires) < new Date()) return NextResponse.json({ message: "OTP has expired. Please login again." }, { status: 401 });
+  const storedOtp = String(data.otp_code ?? "").trim();
+  if (storedOtp !== normalizedOtp) return NextResponse.json({ message: "Invalid OTP code." }, { status: 401 });
+  if (!data.otp_expires || new Date(data.otp_expires) < new Date()) {
+    return NextResponse.json({ message: "OTP has expired. Please login again." }, { status: 401 });
+  }
 
-  await supabase.from("profiles").update({ otp_code: null, otp_expires: null }).eq("email", email.toLowerCase());
+  const { error: clearError } = await supabaseServer
+    .from("profiles")
+    .update({ otp_code: null, otp_expires: null })
+    .eq("email", normalizedEmail);
+
+  if (clearError) {
+    console.error("[OTP clear error]", clearError);
+  }
 
   return NextResponse.json({
     message: "OTP verified.",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   // Regular user — check Supabase profiles
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseServer
       .from("profiles")
       .select("id, name, email, role, password")
       .eq("email", email)

@@ -91,7 +91,18 @@ export default function ProfilePage() {
   // --- Address Save ---
   function handleAddressSave(e: React.FormEvent) {
     e.preventDefault();
-    saveAddress(address);
+    const next = {
+      name: address.name.trim(),
+      phone: address.phone.trim(),
+      address: address.address.trim(),
+      city: address.city.trim(),
+    };
+    if (!next.name || !next.phone || !next.address || !next.city) {
+      setAddrMsg("Please fill in all delivery information fields.");
+      return;
+    }
+    saveAddress(next);
+    setAddress(next);
     setAddrMsg("Address saved successfully!");
     setTimeout(() => setAddrMsg(""), 3000);
   }
@@ -191,22 +202,22 @@ export default function ProfilePage() {
             <div className="flex flex-col gap-1">
               <label className={labelClass}>Full Name</label>
               <input value={address.name} onChange={(e) => setAddress({ ...address, name: e.target.value })}
-                placeholder="e.g. Juan Dela Cruz" className={inputClass} />
+                placeholder="e.g. Juan Dela Cruz" className={inputClass} required />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelClass}>Phone Number</label>
               <input value={address.phone} onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                placeholder="e.g. 09XX XXX XXXX" className={inputClass} />
+                placeholder="e.g. 09XX XXX XXXX" className={inputClass} required />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelClass}>Street Address</label>
               <input value={address.address} onChange={(e) => setAddress({ ...address, address: e.target.value })}
-                placeholder="House No., Street, Barangay" className={inputClass} />
+                placeholder="House No., Street, Barangay" className={inputClass} required />
             </div>
             <div className="flex flex-col gap-1">
               <label className={labelClass}>City / Municipality</label>
               <input value={address.city} onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                placeholder="e.g. Cebu City" className={inputClass} />
+                placeholder="e.g. Cebu City" className={inputClass} required />
             </div>
 
             {addrMsg && <p className="text-xs text-green-500 font-semibold">{addrMsg}</p>}

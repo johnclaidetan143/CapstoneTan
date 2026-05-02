@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { getCart, clearCart, CartItem } from "@/lib/cart";
-import { getSavedAddress } from "@/lib/user";
+import { getSavedAddress, getUser } from "@/lib/user";
 
 const GCASH = { number: "09XXXXXXXXX", name: "Cheni Craft" };
 
@@ -23,13 +23,24 @@ export default function CheckoutPage() {
   });
   const [errors, setErrors] = useState<ErrorState>({});
 
+  function applyDeliveryPrefill() {
+    const saved = getSavedAddress();
+    const user = getUser();
+    setForm((prev) => ({
+      ...prev,
+      name: saved?.name?.trim() || user?.name?.trim() || prev.name,
+      phone: saved?.phone?.trim() || user?.phone?.trim() || prev.phone,
+      address: saved?.address?.trim() || prev.address,
+      city: saved?.city?.trim() || prev.city,
+    }));
+  }
+
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) router.push("/login");
     const c = getCart();
     if (c.length === 0) router.push("/orders");
     setCart(c);
-    const saved = getSavedAddress();
-    if (saved) setForm((prev) => ({ ...prev, name: saved.name, phone: saved.phone, address: saved.address, city: saved.city }));
+    applyDeliveryPrefill();
   }, [router]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -125,32 +136,32 @@ export default function CheckoutPage() {
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 flex justify-end">
-                  <button type="button" onClick={() => { const s = getSavedAddress(); if (s) setForm((p) => ({ ...p, ...s })); }}
+                  <button type="button" onClick={applyDeliveryPrefill}
                     className="text-xs text-amber-600 hover:text-amber-700 font-semibold transition-colors">
                     Use Saved Address
                   </button>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">Full Name</label>
-                  <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Juan Dela Cruz"
+                  <input name="name" value={form.name} onChange={handleChange} placeholder="e.g. Juan Dela Cruz" required
                     className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.name && <p className="text-xs text-red-400">{errors.name}</p>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">Phone Number</label>
-                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="e.g. 09XX XXX XXXX"
+                  <input name="phone" value={form.phone} onChange={handleChange} placeholder="e.g. 09XX XXX XXXX" required
                     className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.phone && <p className="text-xs text-red-400">{errors.phone}</p>}
                 </div>
                 <div className="col-span-2 flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">Street Address</label>
-                  <input name="address" value={form.address} onChange={handleChange} placeholder="House No., Street, Barangay"
+                  <input name="address" value={form.address} onChange={handleChange} placeholder="House No., Street, Barangay" required
                     className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.address && <p className="text-xs text-red-400">{errors.address}</p>}
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-gray-600">City / Municipality</label>
-                  <input name="city" value={form.city} onChange={handleChange} placeholder="e.g. Cebu City"
+                  <input name="city" value={form.city} onChange={handleChange} placeholder="e.g. Cebu City" required
                     className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300" />
                   {errors.city && <p className="text-xs text-red-400">{errors.city}</p>}
                 </div>

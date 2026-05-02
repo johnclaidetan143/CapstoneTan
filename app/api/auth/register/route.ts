@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseServer } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Check if email already exists
-  const { data: existing } = await supabase
+  const { data: existing } = await supabaseServer
     .from("profiles")
     .select("id")
     .eq("email", email)
@@ -22,14 +22,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Email is already registered." }, { status: 409 });
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseServer
     .from("profiles")
     .insert({ name, email, password, role: "customer" })
     .select("id, name, email, created_at")
     .single();
 
   if (error || !data) {
-    return NextResponse.json({ message: "Registration failed. Please try again." }, { status: 500 });
+    const debugMessage =
+      process.env.NODE_ENV === "development" ? (error?.message ?? "Unknown Supabase error") : undefined;
+    return NextResponse.json(
+      { message: "Registration failed. Please try again.", debug: debugMessage },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({

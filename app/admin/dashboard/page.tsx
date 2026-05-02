@@ -24,7 +24,7 @@ type Order = {
   createdAt: string;
 };
 
-const TRACKING = ["Pending Verification", "Pending Payment", "Confirmed", "Shipped", "Delivered", "Cancelled"] as const;
+const TRACKING = ["Pending Verification", "Pending Payment", "Confirmed", "Shipped", "Delivered", "Received", "Cancelled"] as const;
 
 const statusColor: Record<string, string> = {
   "Pending Verification": "bg-yellow-100 text-yellow-700",
@@ -32,6 +32,7 @@ const statusColor: Record<string, string> = {
   "Confirmed":            "bg-blue-100 text-blue-700",
   "Shipped":              "bg-purple-100 text-purple-700",
   "Delivered":            "bg-green-100 text-green-700",
+  "Received":             "bg-emerald-100 text-emerald-700",
   "Cancelled":            "bg-red-100 text-red-600",
 };
 
@@ -199,7 +200,7 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-5">
-        {["Pending Verification", "Confirmed", "Shipped", "Delivered"].map((s) => (
+        {["Pending Verification", "Confirmed", "Shipped", "Delivered", "Received"].map((s) => (
           <div key={s} className="bg-white rounded-2xl shadow-sm p-4 text-center">
             <p className="text-2xl font-extrabold text-gray-900">{orders.filter((o) => o.trackingStatus === s).length}</p>
             <p className="text-xs text-gray-400 mt-1 font-semibold">{s}</p>

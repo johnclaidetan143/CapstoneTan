@@ -13,7 +13,7 @@ import { allProducts } from "@/lib/products";
 
 type ReviewData = { orderNumber: string; rating: number; comment: string; reviewer: string; date: string };
 
-const TRACKING_STEPS = ["Pending Verification", "Confirmed", "Shipped", "Delivered"] as const;
+const TRACKING_STEPS = ["Pending Verification", "Confirmed", "Shipped", "Delivered", "Received"] as const;
 
 function OrderTimeline({ status }: { status: string }) {
   const cancelled = status === "Cancelled";
@@ -52,6 +52,7 @@ const statusColor: Record<string, string> = {
   "Confirmed":            "bg-blue-100 text-blue-700",
   "Shipped":              "bg-purple-100 text-purple-700",
   "Delivered":            "bg-green-100 text-green-700",
+  "Received":             "bg-emerald-100 text-emerald-700",
   "Cancelled":            "bg-red-100 text-red-600",
 };
 
@@ -211,6 +212,23 @@ export default function OrdersPage() {
     }
   }
 
+  async function handleConfirmDelivery(order: OrderRecord) {
+    if (!confirm(`Confirm delivery for order ${order.orderNumber}?`)) return;
+    try {
+      await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderNumber: order.orderNumber, trackingStatus: "Received" }),
+      });
+      setOrders((prev) => prev.map((o) =>
+        o.orderNumber === order.orderNumber ? { ...o, trackingStatus: "Received" as const } : o
+      ));
+      showToast(`Order ${order.orderNumber} marked as received.`, "success");
+    } catch {
+      showToast("Failed to confirm delivery.", "error");
+    }
+  }
+
   function handleViewOrders() {
     setTab("orders");
     setUnreadCount(0);
@@ -221,7 +239,7 @@ export default function OrdersPage() {
   }
 
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const STATUS_FILTERS = ["All", "Pending Verification", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+  const STATUS_FILTERS = ["All", "Pending Verification", "Confirmed", "Shipped", "Delivered", "Received", "Cancelled"];
 
   const filteredOrders = orders
     .filter((o) => filterStatus === "All" || o.trackingStatus === filterStatus)
@@ -366,6 +384,17 @@ export default function OrdersPage() {
                             className="text-xs font-semibold text-red-400 hover:text-red-600 border border-red-200 hover:border-red-400 px-3 py-1 rounded-full transition-colors">
                             Cancel
                           </button>
+                        )}
+                        {order.trackingStatus === "Delivered" && (
+                          <button onClick={(e) => { e.stopPropagation(); handleConfirmDelivery(order); }}
+                            className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 border border-emerald-200 hover:border-emerald-400 px-3 py-1 rounded-full transition-colors">
+                            Confirm Delivery
+                          </button>
+                        )}
+                        {order.trackingStatus === "Received" && (
+                          <span className="text-xs font-semibold text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full">
+                            Delivery Confirmed by You
+                          </span>
                         )}
                         <span className="text-gray-400">{expanded === order.orderNumber ? "▲" : "▼"}</span>
                       </div>

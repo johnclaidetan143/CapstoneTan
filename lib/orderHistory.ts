@@ -11,7 +11,7 @@ export type OrderRecord = {
     referenceNumber: string;
     status: string;
   };
-  trackingStatus: "Pending Verification" | "Pending Payment" | "Confirmed" | "Shipped" | "Delivered" | "Cancelled";
+  trackingStatus: "Pending Verification" | "Pending Payment" | "Confirmed" | "Shipped" | "Delivered" | "Received" | "Cancelled";
   cancelledAt?: string;
   notificationRead?: boolean;
 };
