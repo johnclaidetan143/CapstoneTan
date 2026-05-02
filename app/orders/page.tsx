@@ -11,6 +11,8 @@ import { getAverageRating, getReviews } from "@/lib/reviews";
 import { showToast } from "@/lib/toast";
 import { allProducts } from "@/lib/products";
 
+type ReviewData = { orderNumber: string; rating: number; comment: string; reviewer: string; date: string };
+
 const TRACKING_STEPS = ["Pending Verification", "Confirmed", "Shipped", "Delivered"] as const;
 
 function OrderTimeline({ status }: { status: string }) {
@@ -81,6 +83,11 @@ export default function OrdersPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const [unreadCount, setUnreadCount] = useState(0);
+  const [reviewModal, setReviewModal] = useState<{ orderNumber: string; productId: number; productName: string } | null>(null);
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: "" });
+  const [reviewHover, setReviewHover] = useState(0);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [submittedReviews, setSubmittedReviews] = useState<Record<string, ReviewData>>({});
 
   function fetchOrders(email: string) {
     fetch(`/api/orders?email=${encodeURIComponent(email)}`)
@@ -107,12 +114,59 @@ export default function OrdersPage() {
       .catch(() => setOrders([]));
   }
 
+  async function fetchExistingReviews() {
+    try {
+      const res = await fetch("/api/reviews");
+      const data = await res.json();
+      const map: Record<string, ReviewData> = {};
+      (data.reviews ?? []).forEach((r: ReviewData) => { map[r.orderNumber] = r; });
+      setSubmittedReviews(map);
+    } catch {}
+  }
+
+  async function handleSubmitReview(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reviewModal) return;
+    if (reviewForm.rating === 0) { showToast("Please select a star rating.", "error"); return; }
+    if (!reviewForm.comment.trim()) { showToast("Please write a comment.", "error"); return; }
+    setSubmittingReview(true);
+    const storedUser = localStorage.getItem("registeredUser");
+    const reviewer = storedUser ? JSON.parse(storedUser).name : "Anonymous";
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: reviewModal.productId,
+          orderNumber: reviewModal.orderNumber,
+          reviewer,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showToast(data.message || "Failed to submit review.", "error"); return; }
+      setSubmittedReviews((prev) => ({
+        ...prev,
+        [reviewModal.orderNumber]: { orderNumber: reviewModal.orderNumber, rating: reviewForm.rating, comment: reviewForm.comment, reviewer, date: new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }) },
+      }));
+      setReviewModal(null);
+      setReviewForm({ rating: 0, comment: "" });
+      showToast("Review submitted! Thank you 🌸", "success");
+    } catch {
+      showToast("Something went wrong.", "error");
+    } finally {
+      setSubmittingReview(false);
+    }
+  }
+
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
     setCart(getCart());
     const storedUser = localStorage.getItem("registeredUser");
     const userEmail = storedUser ? JSON.parse(storedUser).email : "";
     if (userEmail) fetchOrders(userEmail);
+    fetchExistingReviews();
     setMounted(true);
   }, [router]);
 
@@ -352,6 +406,30 @@ export default function OrdersPage() {
                             {order.payment?.referenceNumber && <p className="text-xs text-gray-500">Ref #: <span className="font-semibold text-gray-700">{order.payment.referenceNumber}</span></p>}
                           </div>
                         </div>
+
+                        {/* Review Section — only for Delivered orders */}
+                        {order.trackingStatus === "Delivered" && (
+                          <div className="border-t border-gray-100 pt-4">
+                            {submittedReviews[order.orderNumber] ? (
+                              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                                <p className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2">⭐ Your Review</p>
+                                <div className="flex gap-0.5 mb-1">
+                                  {[1,2,3,4,5].map((s) => (
+                                    <span key={s} className={`text-base ${s <= submittedReviews[order.orderNumber].rating ? "text-amber-400" : "text-gray-200"}`}>★</span>
+                                  ))}
+                                </div>
+                                <p className="text-sm text-gray-700">{submittedReviews[order.orderNumber].comment}</p>
+                                <p className="text-xs text-gray-400 mt-1">{submittedReviews[order.orderNumber].date}</p>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setReviewModal({ orderNumber: order.orderNumber, productId: order.items[0]?.productId, productName: order.items[0]?.name })}
+                                className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-5 py-2 rounded-full transition-colors">
+                                ⭐ Write a Review
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -362,6 +440,52 @@ export default function OrdersPage() {
         )}
       </div>
       <Footer />
+
+      {/* Review Modal */}
+      {reviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setReviewModal(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-extrabold text-gray-900">Write a Review</h2>
+              <button onClick={() => setReviewModal(null)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">Order: <span className="font-semibold text-gray-700">{reviewModal.orderNumber}</span></p>
+            <form onSubmit={handleSubmitReview} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-600">Rating</label>
+                <div className="flex gap-1">
+                  {[1,2,3,4,5].map((s) => (
+                    <button key={s} type="button"
+                      onClick={() => setReviewForm({ ...reviewForm, rating: s })}
+                      onMouseEnter={() => setReviewHover(s)}
+                      onMouseLeave={() => setReviewHover(0)}
+                      className={`text-3xl transition-colors ${s <= (reviewHover || reviewForm.rating) ? "text-amber-400" : "text-gray-200"}`}>
+                      ★
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-gray-600">Comment</label>
+                <textarea required rows={4} value={reviewForm.comment}
+                  onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                  placeholder="Share your experience with this order..."
+                  className="border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-none" />
+              </div>
+              <div className="flex gap-3">
+                <button type="submit" disabled={submittingReview}
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-white font-semibold py-2.5 rounded-full text-sm transition-colors disabled:opacity-60">
+                  {submittingReview ? "Submitting..." : "Submit Review"}
+                </button>
+                <button type="button" onClick={() => setReviewModal(null)}
+                  className="flex-1 border border-gray-200 hover:border-gray-400 text-gray-600 font-semibold py-2.5 rounded-full text-sm transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
