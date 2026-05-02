@@ -24,8 +24,9 @@ export function getOrderHistory(): OrderRecord[] {
 
 export function saveOrder(order: OrderRecord) {
   const history = getOrderHistory();
-  history.unshift(order);
+  history.unshift({ ...order, notificationRead: false });
   localStorage.setItem("orderHistory", JSON.stringify(history));
+  window.dispatchEvent(new Event("orderUpdated"));
 }
 
 export function updateOrder(orderNumber: string, updates: Partial<OrderRecord>) {
@@ -37,7 +38,7 @@ export function updateOrder(orderNumber: string, updates: Partial<OrderRecord>) 
 }
 
 export function getUnreadNotifications(): OrderRecord[] {
-  return getOrderHistory().filter((o) => !o.notificationRead && o.trackingStatus !== "Pending Verification" && o.trackingStatus !== "Pending Payment");
+  return getOrderHistory().filter((o) => !o.notificationRead);
 }
 
 export function markAllNotificationsRead() {
