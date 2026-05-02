@@ -47,6 +47,9 @@ export default function Navbar() {
 
   function handleLogout() {
     localStorage.removeItem("loggedIn");
+    localStorage.removeItem("registeredUser");
+    localStorage.removeItem("orderHistory");
+    localStorage.removeItem("session");
     setLoggedIn(false);
     router.push("/login");
   }

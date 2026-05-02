@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getCart, removeFromCart, updateQuantity, CartItem } from "@/lib/cart";
-import { getOrderHistory, updateOrder, markAllNotificationsRead, getUnreadNotifications, OrderRecord } from "@/lib/orderHistory";
+import { getOrderHistory, markAllNotificationsRead, getUnreadNotifications, OrderRecord } from "@/lib/orderHistory";
 import { restoreStock, getProductStock } from "@/lib/stock";
 import { getAverageRating, getReviews } from "@/lib/reviews";
 import { showToast } from "@/lib/toast";
@@ -53,7 +53,6 @@ export default function OrdersPage() {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
     setCart(getCart());
 
-    // Fetch orders from Supabase by email
     const storedUser = localStorage.getItem("registeredUser");
     const userEmail = storedUser ? JSON.parse(storedUser).email : "";
 
@@ -61,7 +60,7 @@ export default function OrdersPage() {
       fetch(`/api/orders?email=${encodeURIComponent(userEmail)}`)
         .then((r) => r.json())
         .then((data) => {
-          const fetched = (data.orders ?? []).map((o: {
+          const fetched: OrderRecord[] = (data.orders ?? []).map((o: {
             orderNumber: string; date: string; items: OrderRecord["items"];
             total: number; customer: OrderRecord["customer"]; payment: OrderRecord["payment"];
             trackingStatus: OrderRecord["trackingStatus"]; notificationRead?: boolean; cancelledAt?: string;
@@ -76,20 +75,12 @@ export default function OrdersPage() {
             notificationRead: o.notificationRead ?? false,
             cancelledAt: o.cancelledAt,
           }));
-          // Merge with localStorage orders (avoid duplicates)
-          const local = getOrderHistory();
-          const localNums = new Set(fetched.map((o: OrderRecord) => o.orderNumber));
-          const merged = [...fetched, ...local.filter((o) => !localNums.has(o.orderNumber))];
-          setOrders(merged);
-          setUnreadCount(merged.filter((o: OrderRecord) => !o.notificationRead).length);
+          setOrders(fetched);
+          setUnreadCount(fetched.filter((o) => !o.notificationRead).length);
         })
-        .catch(() => {
-          setOrders(getOrderHistory());
-          setUnreadCount(getUnreadNotifications().length);
-        });
+        .catch(() => setOrders([]));
     } else {
-      setOrders(getOrderHistory());
-      setUnreadCount(getUnreadNotifications().length);
+      setOrders([]);
     }
 
     setMounted(true);
@@ -110,15 +101,22 @@ export default function OrdersPage() {
     window.dispatchEvent(new Event("cartUpdated"));
   }
 
-  function handleCancel(order: OrderRecord) {
+  async function handleCancel(order: OrderRecord) {
     if (!confirm(`Cancel order ${order.orderNumber}?`)) return;
-    const updated = updateOrder(order.orderNumber, {
-      trackingStatus: "Cancelled",
-      cancelledAt: new Date().toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" }),
-    });
-    restoreStock(order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
-    setOrders(updated);
-    showToast(`Order ${order.orderNumber} cancelled. Stock restored.`, "info");
+    try {
+      await fetch("/api/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderNumber: order.orderNumber, trackingStatus: "Cancelled" }),
+      });
+      setOrders((prev) => prev.map((o) =>
+        o.orderNumber === order.orderNumber ? { ...o, trackingStatus: "Cancelled" as const } : o
+      ));
+      restoreStock(order.items.map((i) => ({ productId: i.productId, quantity: i.quantity })));
+      showToast(`Order ${order.orderNumber} cancelled.`, "info");
+    } catch {
+      showToast("Failed to cancel order.", "error");
+    }
   }
 
   function handleViewOrders() {
