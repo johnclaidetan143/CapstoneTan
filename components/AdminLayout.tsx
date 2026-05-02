@@ -96,8 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-gray-100 flex">
       <aside className="w-56 bg-gray-900 text-white flex flex-col py-8 px-4 gap-2 fixed h-full overflow-y-auto">
         <div className="mb-6 px-2">
-          <span className="text-2xl">🌸</span>
-          <p className="font-extrabold text-white text-lg leading-none mt-1">Chenni</p>
+          <img src="/logo.png" alt="Chenni Craft Shop" className="h-14 w-auto object-contain mb-1" />
           <p className="text-xs text-amber-400 tracking-widest uppercase font-semibold">Admin Panel</p>
         </div>
         {links.map((l) => (
