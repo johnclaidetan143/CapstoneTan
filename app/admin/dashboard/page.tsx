@@ -144,11 +144,11 @@ export default function AdminDashboardPage() {
       `<tr><td style="padding:6px 0;border-bottom:1px solid #f0f0f0">${i.name}</td><td style="text-align:center;border-bottom:1px solid #f0f0f0">${i.quantity}</td><td style="text-align:right;border-bottom:1px solid #f0f0f0">₱${i.price}.00</td><td style="text-align:right;border-bottom:1px solid #f0f0f0">₱${i.price * i.quantity}.00</td></tr>`
     ).join("");
     w.document.write(`<html><head><title>Invoice ${order.orderNumber}</title><style>body{font-family:sans-serif;padding:40px;max-width:600px;margin:auto}h2{color:#d97706}table{width:100%;border-collapse:collapse}th{text-align:left;padding:8px 0;border-bottom:2px solid #eee;font-size:12px;color:#666;text-transform:uppercase}.total{font-weight:bold;font-size:16px}.footer{font-size:11px;color:#999;text-align:center;margin-top:32px}</style></head><body>
-    <div style="display:flex;justify-content:space-between;margin-bottom:24px"><div><h2>🌸 Chenni Craft Shop</h2><p style="font-size:12px;color:#666">Official Invoice</p></div><div style="text-align:right"><p style="font-weight:bold">${order.orderNumber}</p><p style="font-size:12px;color:#666">${order.date}</p></div></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:24px"><div><h2>🌸 Cheni Craft</h2><p style="font-size:12px;color:#666">Official Invoice</p></div><div style="text-align:right"><p style="font-weight:bold">${order.orderNumber}</p><p style="font-size:12px;color:#666">${order.date}</p></div></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;font-size:13px"><div><p style="font-weight:bold">Bill To:</p><p>${order.customer?.name ?? order.customerName}</p><p>${order.customer?.phone ?? ""}</p><p>${order.customer?.address ?? ""}, ${order.customer?.city ?? ""}</p></div><div><p style="font-weight:bold">Payment:</p><p>${order.payment.method === "gcash" ? "GCash" : "Cash on Delivery"}</p>${order.payment.referenceNumber ? `<p>Ref: ${order.payment.referenceNumber}</p>` : ""}<p>Status: ${order.payment.status}</p></div></div>
     <table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Subtotal</th></tr></thead><tbody>${items}</tbody></table>
     <div style="text-align:right;margin-top:16px"><p class="total">Total: ₱${order.total}.00</p></div>
-    <div class="footer">Thank you for shopping at Chenni Craft Shop! 🌸</div></body></html>`);
+    <div class="footer">Thank you for shopping at Cheni Craft! 🌸</div></body></html>`);
     w.document.close(); w.print();
   }
 

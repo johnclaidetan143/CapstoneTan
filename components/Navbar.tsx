@@ -72,7 +72,7 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Chenni Craft Shop" className="h-16 w-auto object-contain" />
+          <img src="/logo.png" alt="Cheni Craft" className="h-16 w-auto object-contain" />
         </Link>
 
         {/* Nav Links */}

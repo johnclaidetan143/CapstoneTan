@@ -6,7 +6,7 @@ import { getCart, clearCart, CartItem } from "@/lib/cart";
 import { getSavedAddress } from "@/lib/user";
 import { saveOrder } from "@/lib/orderHistory";
 
-const GCASH = { number: "09XXXXXXXXX", name: "Chenni Craft Shop" };
+const GCASH = { number: "09XXXXXXXXX", name: "Cheni Craft" };
 
 type FormState = {
   name: string; phone: string; address: string; city: string;

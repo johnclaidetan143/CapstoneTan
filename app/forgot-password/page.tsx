@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="bg-gray-50 p-8 rounded-xl shadow w-full max-w-sm">
-        <h1 className="text-base font-bold text-gray-800 text-center mb-1">Chenni Craft Shop</h1>
+        <h1 className="text-base font-bold text-gray-800 text-center mb-1">Cheni Craft</h1>
         <p className="text-xs text-center text-gray-400 mb-5">Reset your password</p>
 
         {sent ? (

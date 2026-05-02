@@ -170,7 +170,7 @@ export default function ReviewSection({ productId }: { productId: number }) {
               <p className="text-sm text-gray-600 mt-2 leading-relaxed">{r.comment}</p>
               {r.adminReply && (
                 <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                  <p className="text-xs font-bold text-amber-600 mb-1">🌸 Chenni Craft Shop replied:</p>
+                  <p className="text-xs font-bold text-amber-600 mb-1">🌸 Cheni Craft replied:</p>
                   <p className="text-sm text-gray-700">{r.adminReply}</p>
                 </div>
               )}

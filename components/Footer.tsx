@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-6 py-12 grid grid-cols-3 gap-8">
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <img src="/logo.png" alt="Chenni Craft Shop" className="h-16 w-auto object-contain" />
+            <img src="/logo.png" alt="Cheni Craft" className="h-16 w-auto object-contain" />
           </div>
           <p className="text-xs text-gray-400 leading-relaxed">
             Bringing nature's beauty to your doorstep. Handcrafted bouquets and botanical treasures.
@@ -32,7 +32,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-gray-800 py-4 text-center text-xs text-gray-500">
-        © 2026 Chenni Craft Shop. All rights reserved.
+        © 2026 Cheni Craft. All rights reserved.
       </div>
     </footer>
   );

@@ -14,12 +14,12 @@ export async function POST(req: NextRequest) {
 
   try {
     await resend.emails.send({
-      from: "Chenni Craft Shop <onboarding@resend.dev>",
+      from: "Cheni Craft <onboarding@resend.dev>",
       to: email,
       subject: "Reset your password 🔐",
       html: `
         <div style="font-family:sans-serif;max-width:500px;margin:auto;padding:32px;background:#fafaf8;border-radius:16px;">
-          <h2 style="color:#d97706;text-align:center;">Chenni Craft Shop</h2>
+          <h2 style="color:#d97706;text-align:center;">Cheni Craft</h2>
           <div style="background:white;border-radius:12px;padding:24px;margin:16px 0;text-align:center;">
             <p style="font-size:32px;margin:0 0 12px;">🔐</p>
             <h3 style="color:#111;margin:0 0 8px;">Reset Your Password</h3>

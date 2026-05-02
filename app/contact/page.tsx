@@ -29,7 +29,7 @@ export default function ContactPage() {
             {[
               { icon: "📍", label: "Address", value: "Cebu City, Philippines" },
               { icon: "📞", label: "Phone", value: "+63 912 345 6789" },
-              { icon: "✉️", label: "Email", value: "chennicraftshop@gmail.com" },
+              { icon: "✉️", label: "Email", value: "chenicraftshop@gmail.com" },
             ].map((item) => (
               <div key={item.label} className="bg-white rounded-2xl shadow-sm p-4 text-center">
                 <span className="text-2xl">{item.icon}</span>

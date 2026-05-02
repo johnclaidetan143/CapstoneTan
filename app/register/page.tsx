@@ -58,7 +58,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="bg-gray-50 p-8 rounded-xl shadow w-full max-w-sm">
         <h1 className="text-2xl font-bold text-gray-800 text-center mb-1">
-          Chenni Craft Shop
+          Cheni Craft
         </h1>
         <p className="text-xs text-center text-gray-400 mb-4">Create an account</p>
 

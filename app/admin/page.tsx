@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-6">
           <span className="text-3xl">🌸</span>
           <h1 className="text-xl font-extrabold text-gray-900 mt-2">Admin Panel</h1>
-          <p className="text-xs text-gray-400 mt-1">Chenni Craft Shop</p>
+          <p className="text-xs text-gray-400 mt-1">Cheni Craft</p>
         </div>
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">

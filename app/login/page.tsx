@@ -51,7 +51,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-white flex items-center justify-center">
       <div className="bg-gray-50 p-8 rounded-xl shadow w-full max-w-sm">
         <h1 className="text-base font-bold text-gray-800 text-center mb-4">
-          Chenni Craft Shop
+          Cheni Craft
         </h1>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">

@@ -186,7 +186,7 @@ export default function Home() {
             </div>
 
             <h1 className="text-5xl font-black leading-[0.95] sm:text-6xl md:text-7xl">
-              CHENNI CRAFT
+              Cheni Craft
               <span className="mt-2 block bg-[linear-gradient(135deg,#ff4da6,#ff85c1)] bg-clip-text text-transparent">
                 Dream Drop
               </span>

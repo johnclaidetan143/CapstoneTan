@@ -27,14 +27,14 @@ export async function POST(req: NextRequest) {
 
   try {
     await resend.emails.send({
-      from: "Chenni Craft Shop <onboarding@resend.dev>",
+      from: "Cheni Craft <onboarding@resend.dev>",
       to: customerEmail,
       subject: info.subject,
       html: `
         <div style="font-family:sans-serif;max-width:500px;margin:auto;padding:32px;background:#fafaf8;border-radius:16px;">
           <div style="text-align:center;margin-bottom:24px;">
-            <img src="https://sdfpguuquoragpeztqwz.supabase.co/storage/v1/object/public/assets/logo.png" alt="Chenni Craft Shop" style="height:60px;" onerror="this.style.display='none'" />
-            <h2 style="color:#d97706;margin-top:12px;">Chenni Craft Shop</h2>
+            <img src="https://sdfpguuquoragpeztqwz.supabase.co/storage/v1/object/public/assets/logo.png" alt="Cheni Craft" style="height:60px;" onerror="this.style.display='none'" />
+            <h2 style="color:#d97706;margin-top:12px;">Cheni Craft</h2>
           </div>
           <div style="background:white;border-radius:12px;padding:24px;margin-bottom:16px;">
             <p style="font-size:32px;text-align:center;margin:0 0 12px;">${info.emoji}</p>
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
               ${total ? `<p style="font-size:13px;color:#666;margin:4px 0 0;">Total: ₱${total}.00</p>` : ""}
             </div>
           </div>
-          <p style="text-align:center;font-size:12px;color:#999;">Thank you for shopping at Chenni Craft Shop! 🌸</p>
+          <p style="text-align:center;font-size:12px;color:#999;">Thank you for shopping at Cheni Craft! 🌸</p>
         </div>
       `,
     });

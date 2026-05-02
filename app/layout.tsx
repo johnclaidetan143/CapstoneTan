@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Chenni Craft Shop",
+  title: "Cheni Craft",
   description: "Handcrafted bouquets, flower pots, and keychains made with love.",
 };
 

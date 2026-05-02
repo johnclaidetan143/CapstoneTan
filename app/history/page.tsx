@@ -64,7 +64,7 @@ function printReceipt(order: OrderRecord) {
       .total{font-weight:bold;font-size:15px;color:#d97706}
       .footer{font-size:11px;color:#999;text-align:center;margin-top:24px}
     </style></head><body>
-    <h2>🌸 Chenni Craft Shop</h2>
+    <h2>🌸 Cheni Craft</h2>
     <p><strong>Order #:</strong> ${order.orderNumber}</p>
     <p><strong>Date:</strong> ${order.date}</p>
     <hr/>
@@ -80,7 +80,7 @@ function printReceipt(order: OrderRecord) {
     ${order.payment.bank ? `<p>Bank: ${order.payment.bank}</p>` : ""}
     ${order.payment.referenceNumber ? `<p>Ref #: ${order.payment.referenceNumber}</p>` : ""}
     <p>Status: ${order.payment.status}</p>
-    <div class="footer">Thank you for shopping at Chenni Craft Shop! 🌸</div>
+    <div class="footer">Thank you for shopping at Cheni Craft! 🌸</div>
     </body></html>
   `);
   w.document.close();

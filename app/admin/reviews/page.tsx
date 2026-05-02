@@ -71,7 +71,7 @@ export default function AdminReviewsPage() {
               <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 mb-3">{r.comment}</p>
               {r.adminReply ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
-                  <p className="text-xs font-bold text-amber-600 mb-1">🌸 Chenni Craft Shop replied:</p>
+                  <p className="text-xs font-bold text-amber-600 mb-1">🌸 Cheni Craft replied:</p>
                   <p className="text-sm text-gray-700">{r.adminReply}</p>
                   <button onClick={() => handleDeleteReply(r.id)} className="text-xs text-red-400 hover:text-red-600 font-medium mt-2 transition-colors">Delete Reply</button>
                 </div>

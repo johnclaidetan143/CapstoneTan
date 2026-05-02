@@ -9,7 +9,7 @@ export default function LiveChat() {
       {open && (
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-4 w-56 flex flex-col gap-2 animate-fade-in">
           <p className="text-xs font-bold text-gray-700 mb-1">Chat with us 💬</p>
-          <a href="https://m.me/chennicraftshop" target="_blank" rel="noopener noreferrer"
+          <a href="https://m.me/chenicraftshop" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors">
             <span className="text-xl">📘</span>
             <span className="text-sm font-semibold text-blue-700">Messenger</span>
@@ -19,7 +19,7 @@ export default function LiveChat() {
             <span className="text-xl">💬</span>
             <span className="text-sm font-semibold text-green-700">WhatsApp</span>
           </a>
-          <a href="https://instagram.com/chennicraftshop" target="_blank" rel="noopener noreferrer"
+          <a href="https://instagram.com/chenicraftshop" target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-pink-50 hover:bg-pink-100 transition-colors">
             <span className="text-xl">📸</span>
             <span className="text-sm font-semibold text-pink-700">Instagram</span>
