@@ -99,25 +99,42 @@ export async function PATCH(req: NextRequest) {
   const updates: Record<string, unknown> = { notification_read: false };
   if (trackingStatus) updates.tracking_status = trackingStatus;
   if (paymentStatus) {
-    // Get current payment object and update status
     const { data: current } = await supabase
       .from("orders")
       .select("payment")
       .eq("order_number", orderNumber)
       .single();
-
-    if (current) {
-      updates.payment = { ...current.payment, status: paymentStatus };
-    }
+    if (current) updates.payment = { ...current.payment, status: paymentStatus };
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("orders")
     .update(updates)
-    .eq("order_number", orderNumber);
+    .eq("order_number", orderNumber)
+    .select("customer_email, customer_name, total")
+    .single();
 
   if (error) {
     return NextResponse.json({ message: "Failed to update order." }, { status: 500 });
+  }
+
+  // Send email notification if tracking status changed
+  if (trackingStatus && updated?.customer_email) {
+    try {
+      await fetch(`${req.nextUrl.origin}/api/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerEmail: updated.customer_email,
+          customerName: updated.customer_name,
+          orderNumber,
+          trackingStatus,
+          total: updated.total,
+        }),
+      });
+    } catch {
+      // Non-blocking
+    }
   }
 
   return NextResponse.json({ message: "Order updated." }, { status: 200 });

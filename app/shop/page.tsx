@@ -22,6 +22,8 @@ export default function ShopPage() {
   const router = useRouter();
   const [active, setActive] = useState("All");
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("default");
+  const [maxPrice, setMaxPrice] = useState(500);
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [stock, setStock] = useState<Record<number, number>>({});
   const [quickView, setQuickView] = useState<Product | null>(null);
@@ -57,7 +59,14 @@ export default function ShopPage() {
 
   const filtered = (allProducts as Product[])
     .filter((p) => active === "All" || p.category === active)
-    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.subtitle.toLowerCase().includes(search.toLowerCase()));
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || p.subtitle.toLowerCase().includes(search.toLowerCase()))
+    .filter((p) => p.price <= maxPrice)
+    .sort((a, b) => {
+      if (sortBy === "price-asc") return a.price - b.price;
+      if (sortBy === "price-desc") return b.price - a.price;
+      if (sortBy === "name") return a.name.localeCompare(b.name);
+      return 0;
+    });
 
   return (
     <div className="min-h-screen bg-[#fafaf8]">
@@ -81,7 +90,7 @@ export default function ShopPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-3 mb-8">
+        <div className="flex gap-3 mb-4 flex-wrap">
           {filters.map((f) => (
             <button key={f} onClick={() => setActive(f)}
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-colors ${
@@ -94,6 +103,29 @@ export default function ShopPage() {
             <span className="ml-auto text-xs text-gray-400 self-center">
               {filtered.length} result{filtered.length !== 1 ? "s" : ""} for &quot;{search}&quot;
             </span>
+          )}
+        </div>
+
+        {/* Price + Sort */}
+        <div className="flex items-center gap-6 mb-8 bg-white rounded-2xl shadow-sm px-5 py-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-1 min-w-48">
+            <label className="text-xs font-semibold text-gray-600 whitespace-nowrap">Max Price: <span className="text-amber-600">₱{maxPrice}</span></label>
+            <input type="range" min={50} max={500} step={10} value={maxPrice}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              className="flex-1 accent-amber-500" />
+          </div>
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+            className="border rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300">
+            <option value="default">Sort: Default</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+            <option value="name">Name: A–Z</option>
+          </select>
+          {(sortBy !== "default" || maxPrice < 500) && (
+            <button onClick={() => { setSortBy("default"); setMaxPrice(500); }}
+              className="text-xs text-gray-400 hover:text-gray-600 font-semibold transition-colors">
+              Reset Filters
+            </button>
           )}
         </div>
 
