@@ -49,25 +49,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* Social Media */}
-        <section className="max-w-3xl mx-auto px-6 py-14 text-center">
-          <p className="text-xs text-amber-600 font-bold tracking-widest uppercase mb-2">Connect With Us</p>
-          <h2 className="text-2xl font-extrabold text-gray-900 mb-6">Follow Our Journey</h2>
-          <div className="flex justify-center gap-4 flex-wrap">
-            {[
-              { label: "Facebook", icon: "📘", href: "https://facebook.com/chenicraftshop", color: "bg-blue-50 text-blue-600 border-blue-200" },
-              { label: "Instagram", icon: "📸", href: "https://instagram.com/chenicraftshop", color: "bg-pink-50 text-pink-600 border-pink-200" },
-              { label: "TikTok", icon: "🎵", href: "https://tiktok.com/@chenicraftshop", color: "bg-gray-50 text-gray-700 border-gray-200" },
-              { label: "Shopee", icon: "🛍️", href: "https://shopee.ph/chenicraftshop", color: "bg-orange-50 text-orange-600 border-orange-200" },
-            ].map((s) => (
-              <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer"
-                className={`flex items-center gap-2 px-5 py-3 rounded-full border font-semibold text-sm transition-all hover:scale-105 ${s.color}`}>
-                <span>{s.icon}</span>{s.label}
-              </a>
-            ))}
-          </div>
-        </section>
-
         {/* CTA */}
         <section className="bg-amber-50 border-t border-amber-100 py-12 text-center px-6">
           <h2 className="text-xl font-extrabold text-gray-900 mb-2">Ready to shop?</h2>
