@@ -1,15 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createId, readJsonArray, writeJsonArray } from "@/lib/server/db";
-import type { UserRecord } from "@/lib/server-types";
-
-type RegisterBody = {
-  name?: string;
-  email?: string;
-  password?: string;
-};
+import { supabase } from "@/lib/supabase";
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as RegisterBody;
+  const body = await req.json();
   const name = body.name?.trim();
   const email = body.email?.trim().toLowerCase();
   const password = body.password;
@@ -18,29 +11,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Name, email, and password are required." }, { status: 400 });
   }
 
-  const users = await readJsonArray<UserRecord>("users.json");
-  const exists = users.some((u) => u.email === email);
-  if (exists) {
+  // Check if email already exists
+  const { data: existing } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .single();
+
+  if (existing) {
     return NextResponse.json({ message: "Email is already registered." }, { status: 409 });
   }
 
-  const newUser: UserRecord = {
-    id: createId("usr"),
-    name,
-    email,
-    password,
-    role: "customer",
-    createdAt: new Date().toISOString(),
-  };
+  const { data, error } = await supabase
+    .from("profiles")
+    .insert({ name, email, password, role: "customer" })
+    .select("id, name, email, created_at")
+    .single();
 
-  users.push(newUser);
-  await writeJsonArray("users.json", users);
+  if (error || !data) {
+    return NextResponse.json({ message: "Registration failed. Please try again." }, { status: 500 });
+  }
 
-  return NextResponse.json(
-    {
-      message: "Registered successfully.",
-      user: { id: newUser.id, name: newUser.name, email: newUser.email, createdAt: newUser.createdAt },
-    },
-    { status: 201 }
-  );
+  return NextResponse.json({
+    message: "Registered successfully.",
+    user: { id: data.id, name: data.name, email: data.email, createdAt: data.created_at },
+  }, { status: 201 });
 }

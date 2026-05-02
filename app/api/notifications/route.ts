@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createId, readJsonArray, writeJsonArray } from "@/lib/server/db";
+import { supabase } from "@/lib/supabase";
 
 export type Notification = {
   id: string;
@@ -12,37 +12,36 @@ export type Notification = {
 };
 
 export async function GET() {
-  const notifications = await readJsonArray<Notification>("notifications.json");
-  const sorted = [...notifications].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-  return NextResponse.json({ notifications: sorted });
-}
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const notification: Notification = {
-    id: createId("notif"),
-    orderId: body.orderId || "",
-    orderNumber: body.orderNumber || "",
-    title: body.title || "New Order",
-    message: body.message || "A new order was received.",
-    isRead: false,
-    createdAt: new Date().toISOString(),
-  };
-  const notifications = await readJsonArray<Notification>("notifications.json");
-  notifications.unshift(notification);
-  await writeJsonArray("notifications.json", notifications);
-  return NextResponse.json({ notification }, { status: 201 });
+  if (error) {
+    return NextResponse.json({ notifications: [] });
+  }
+
+  const notifications = (data ?? []).map((n) => ({
+    id: n.id,
+    orderId: n.order_id,
+    orderNumber: n.order_number,
+    title: n.title,
+    message: n.message,
+    isRead: n.is_read,
+    createdAt: n.created_at,
+  }));
+
+  return NextResponse.json({ notifications });
 }
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const notifications = await readJsonArray<Notification>("notifications.json");
-  const updated = notifications.map((n) => {
-    if (body.id === "all" || n.id === body.id) return { ...n, isRead: true };
-    return n;
-  });
-  await writeJsonArray("notifications.json", updated);
+
+  if (body.id === "all") {
+    await supabase.from("notifications").update({ is_read: true }).eq("is_read", false);
+  } else {
+    await supabase.from("notifications").update({ is_read: true }).eq("id", body.id);
+  }
+
   return NextResponse.json({ message: "Updated." });
 }
