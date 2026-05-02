@@ -20,3 +20,12 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
 }
+
+@media print {
+  nav, footer, .no-print { display: none !important; }
+  body { background: white !important; }
+  .max-w-2xl { max-width: 100% !important; padding: 0 !important; }
+  .shadow-sm { box-shadow: none !important; }
+  button { display: none !important; }
+  a[href] { display: none !important; }
+}
