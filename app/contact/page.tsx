@@ -6,11 +6,27 @@ import Footer from "@/components/Footer";
 export default function ContactPage() {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSent(true);
-    setForm({ name: "", email: "", message: "" });
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!res.ok) { setError("Failed to send. Please try again."); return; }
+      setSent(true);
+      setForm({ name: "", email: "", message: "" });
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -90,10 +106,12 @@ export default function ContactPage() {
                 </div>
                 <button
                   type="submit"
-                  className="bg-amber-500 hover:bg-amber-400 text-white font-semibold py-2.5 rounded-full text-sm transition-colors"
+                  disabled={loading}
+                  className="bg-amber-500 hover:bg-amber-400 text-white font-semibold py-2.5 rounded-full text-sm transition-colors disabled:opacity-60"
                 >
-                  Send Message
+                  {loading ? "Sending..." : "Send Message"}
                 </button>
+                {error && <p className="text-xs text-red-400 font-semibold">{error}</p>}
               </form>
             )}
           </div>

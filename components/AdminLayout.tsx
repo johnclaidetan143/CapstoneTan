@@ -19,6 +19,7 @@ const links = [
   { href: "/admin/dashboard", label: "📋 Orders" },
   { href: "/admin/products",  label: "📦 Products" },
   { href: "/admin/customers", label: "👥 Customers" },
+  { href: "/admin/messages",  label: "✉️ Messages" },
   { href: "/admin/sales",     label: "📊 Sales" },
   { href: "/admin/reviews",   label: "⭐ Reviews" },
   { href: "/admin/settings",  label: "⚙️ Settings" },
@@ -33,9 +34,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications");
-      const data = await res.json();
-      setNotifications(data.notifications ?? []);
+      const [notifRes, msgRes] = await Promise.all([
+        fetch("/api/notifications"),
+        fetch("/api/messages"),
+      ]);
+      const notifData = await notifRes.json();
+      const msgData = await msgRes.json();
+      setNotifications([
+        ...(notifData.notifications ?? []),
+        ...(msgData.messages ?? []).filter((m: { is_read: boolean }) => !m.is_read).map((m: { id: string; name: string; email: string; message: string; created_at: string }) => ({
+          id: m.id,
+          orderId: "",
+          orderNumber: "",
+          title: `New message from ${m.name}`,
+          message: m.message.slice(0, 80) + (m.message.length > 80 ? "..." : ""),
+          isRead: false,
+          createdAt: m.created_at,
+          isMessage: true,
+        })),
+      ]);
     } catch {}
   }, []);
 
@@ -155,7 +172,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         onClick={() => {
                           markOneRead(n.id);
                           setOpen(false);
-                          router.push("/admin/dashboard");
+                          router.push((n as typeof n & { isMessage?: boolean }).isMessage ? "/admin/messages" : "/admin/dashboard");
                         }}
                         className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors ${!n.isRead ? "bg-amber-50" : ""}`}
                       >
