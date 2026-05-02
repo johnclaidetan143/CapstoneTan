@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { getCart, removeFromCart, updateQuantity, CartItem } from "@/lib/cart";
-import { getOrderHistory, markAllNotificationsRead, getUnreadNotifications, OrderRecord } from "@/lib/orderHistory";
+import { OrderRecord } from "@/lib/orderHistory";
 import { restoreStock, getProductStock } from "@/lib/stock";
 import { getAverageRating, getReviews } from "@/lib/reviews";
 import { showToast } from "@/lib/toast";
@@ -35,9 +35,7 @@ function OrderTimeline({ status }: { status: string }) {
               }`}>{cancelled && i === 0 ? "Cancelled" : step}</p>
             </div>
             {i < TRACKING_STEPS.length - 1 && (
-              <div className={`flex-1 h-0.5 mx-1 mb-4 ${
-                !cancelled && currentIdx > i ? "bg-amber-500" : "bg-gray-200"
-              }`} />
+              <div className={`flex-1 h-0.5 mx-1 mb-4 ${!cancelled && currentIdx > i ? "bg-amber-500" : "bg-gray-200"}`} />
             )}
           </div>
         );
@@ -46,7 +44,7 @@ function OrderTimeline({ status }: { status: string }) {
   );
 }
 
-
+const statusColor: Record<string, string> = {
   "Pending Verification": "bg-yellow-100 text-yellow-700",
   "Pending Payment":      "bg-orange-100 text-orange-600",
   "Confirmed":            "bg-blue-100 text-blue-700",
@@ -84,48 +82,54 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [unreadCount, setUnreadCount] = useState(0);
 
+  function fetchOrders(email: string) {
+    fetch(`/api/orders?email=${encodeURIComponent(email)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const fetched: OrderRecord[] = (data.orders ?? []).map((o: {
+          orderNumber: string; date: string; items: OrderRecord["items"];
+          total: number; customer: OrderRecord["customer"]; payment: OrderRecord["payment"];
+          trackingStatus: OrderRecord["trackingStatus"]; notificationRead?: boolean; cancelledAt?: string;
+        }) => ({
+          orderNumber: o.orderNumber,
+          date: o.date,
+          items: o.items,
+          total: o.total,
+          customer: o.customer,
+          payment: o.payment,
+          trackingStatus: o.trackingStatus,
+          notificationRead: o.notificationRead ?? false,
+          cancelledAt: o.cancelledAt,
+        }));
+        setOrders(fetched);
+        setUnreadCount(fetched.filter((o) => !o.notificationRead).length);
+      })
+      .catch(() => setOrders([]));
+  }
+
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
     setCart(getCart());
-
     const storedUser = localStorage.getItem("registeredUser");
     const userEmail = storedUser ? JSON.parse(storedUser).email : "";
-
-    if (userEmail) {
-      fetch(`/api/orders?email=${encodeURIComponent(userEmail)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          const fetched: OrderRecord[] = (data.orders ?? []).map((o: {
-            orderNumber: string; date: string; items: OrderRecord["items"];
-            total: number; customer: OrderRecord["customer"]; payment: OrderRecord["payment"];
-            trackingStatus: OrderRecord["trackingStatus"]; notificationRead?: boolean; cancelledAt?: string;
-          }) => ({
-            orderNumber: o.orderNumber,
-            date: o.date,
-            items: o.items,
-            total: o.total,
-            customer: o.customer,
-            payment: o.payment,
-            trackingStatus: o.trackingStatus,
-            notificationRead: o.notificationRead ?? false,
-            cancelledAt: o.cancelledAt,
-          }));
-          setOrders(fetched);
-          setUnreadCount(fetched.filter((o) => !o.notificationRead).length);
-        })
-        .catch(() => setOrders([]));
-    } else {
-      setOrders([]);
-    }
-
+    if (userEmail) fetchOrders(userEmail);
     setMounted(true);
   }, [router]);
+
+  // Poll every 15 seconds for status updates
+  useEffect(() => {
+    const storedUser = localStorage.getItem("registeredUser");
+    const userEmail = storedUser ? JSON.parse(storedUser).email : "";
+    if (!userEmail) return;
+    const interval = setInterval(() => fetchOrders(userEmail), 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   function handleQuantity(productId: number, quantity: number) {
     if (quantity < 1) return;
     const currentItem = cart.find((i) => i.productId === productId);
     if (!currentItem) return;
-    const stockLeft = getProductStock(productId) + currentItem.quantity; // available + what's already in cart
+    const stockLeft = getProductStock(productId) + currentItem.quantity;
     if (quantity > stockLeft) { showToast(`Only ${stockLeft} available in stock.`, "error"); return; }
     setCart([...updateQuantity(productId, quantity)]);
     window.dispatchEvent(new Event("cartUpdated"));
@@ -156,12 +160,15 @@ export default function OrdersPage() {
 
   function handleViewOrders() {
     setTab("orders");
-    markAllNotificationsRead();
     setUnreadCount(0);
+    // Refresh orders when tab is clicked
+    const storedUser = localStorage.getItem("registeredUser");
+    const userEmail = storedUser ? JSON.parse(storedUser).email : "";
+    if (userEmail) fetchOrders(userEmail);
   }
 
   const cartTotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
-  const STATUS_FILTERS = ["All", "Pending Verification", "Pending Payment", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+  const STATUS_FILTERS = ["All", "Pending Verification", "Confirmed", "Shipped", "Delivered", "Cancelled"];
 
   const filteredOrders = orders
     .filter((o) => filterStatus === "All" || o.trackingStatus === filterStatus)
@@ -181,7 +188,6 @@ export default function OrdersPage() {
           <h1 className="text-3xl font-extrabold text-gray-900">Orders</h1>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-3 mb-6">
           <button className={tabClass("cart")} onClick={() => setTab("cart")}>
             🛒 Cart {cart.length > 0 && <span className="ml-1 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{cart.length}</span>}
@@ -239,8 +245,6 @@ export default function OrdersPage() {
                   </div>
                   <button onClick={() => router.push("/checkout")} className="bg-amber-500 hover:bg-amber-400 text-white font-semibold px-8 py-3 rounded-full transition-colors">Checkout</button>
                 </div>
-
-                {/* Related Products — You might also like */}
                 {(() => {
                   const cartIds = cart.map((i) => i.productId);
                   const cartCategories = cart.map((i) => allProducts.find((p) => p.id === i.productId)?.category).filter(Boolean);
@@ -271,7 +275,6 @@ export default function OrdersPage() {
         {/* PLACED ORDERS TAB */}
         {tab === "orders" && (
           <>
-            {/* Search + Filter */}
             <div className="flex gap-3 mb-4 flex-wrap">
               <div className="relative flex-1 min-w-48">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
@@ -301,7 +304,6 @@ export default function OrdersPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-bold text-gray-900 text-sm">{order.orderNumber}</p>
                           <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor[order.trackingStatus] ?? "bg-gray-100 text-gray-500"}`}>{order.trackingStatus}</span>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${order.payment.status === "Verified" ? "bg-green-100 text-green-700" : order.payment.status === "Rejected" ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-700"}`}>{order.payment.status}</span>
                         </div>
                         <p className="text-xs text-gray-400">{order.date} · {order.items.length} item(s) · ₱{order.total}.00</p>
                       </div>
@@ -346,9 +348,8 @@ export default function OrdersPage() {
                           </div>
                           <div>
                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Payment</p>
-                            <p className="font-semibold text-gray-800">{methodLabel[order.payment.method] ?? order.payment.method}</p>
-                            {order.payment.bank && <p className="text-xs text-gray-500">Bank: {order.payment.bank}</p>}
-                            {order.payment.referenceNumber && <p className="text-xs text-gray-500">Ref #: <span className="font-semibold text-gray-700">{order.payment.referenceNumber}</span></p>}
+                            <p className="font-semibold text-gray-800">{methodLabel[order.payment?.method] ?? order.payment?.method}</p>
+                            {order.payment?.referenceNumber && <p className="text-xs text-gray-500">Ref #: <span className="font-semibold text-gray-700">{order.payment.referenceNumber}</span></p>}
                           </div>
                         </div>
                       </div>

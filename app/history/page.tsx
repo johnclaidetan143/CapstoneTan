@@ -96,7 +96,14 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) router.push("/login");
-    setOrders(getOrderHistory());
+    const storedUser = localStorage.getItem("registeredUser");
+    const userEmail = storedUser ? JSON.parse(storedUser).email : "";
+    if (userEmail) {
+      fetch(`/api/orders?email=${encodeURIComponent(userEmail)}`)
+        .then((r) => r.json())
+        .then((data) => setOrders(data.orders ?? []))
+        .catch(() => setOrders([]));
+    }
   }, [router]);
 
   const STATUS_FILTERS = ["All", "Pending Verification", "Pending Payment", "Confirmed", "Shipped", "Delivered", "Cancelled"];
