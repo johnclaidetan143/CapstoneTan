@@ -190,7 +190,6 @@ export default function AdminDashboardPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           <button onClick={fetchOrders} className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-full transition-colors">🔄 Refresh</button>
-          <button onClick={exportCSV} className="bg-green-500 hover:bg-green-400 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors">⬇ Export CSV</button>
           <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="border rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300">
             {STATUS_FILTERS.map((s) => <option key={s}>{s}</option>)}
           </select>
