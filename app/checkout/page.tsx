@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { getCart, clearCart, CartItem } from "@/lib/cart";
 import { getSavedAddress } from "@/lib/user";
-import { saveOrder } from "@/lib/orderHistory";
 
 const GCASH = { number: "09XXXXXXXXX", name: "Cheni Craft" };
 
@@ -83,13 +82,10 @@ export default function CheckoutPage() {
       trackingStatus: "Pending Verification" as const,
     };
 
-    // Save to localStorage for customer-side history
+    // Save to localStorage for confirmation page
     localStorage.setItem("lastOrder", JSON.stringify(order));
-    const history = JSON.parse(localStorage.getItem("orderHistory") || "[]");
-    const exists = history.find((o: { orderNumber: string }) => o.orderNumber === order.orderNumber);
-    if (!exists) saveOrder(order);
 
-    // Save to server so admin can see it
+    // Save to Supabase via API
     try {
       await fetch("/api/orders", {
         method: "POST",
@@ -97,7 +93,7 @@ export default function CheckoutPage() {
         body: JSON.stringify(order),
       });
     } catch {
-      // Non-blocking — order is already saved locally
+      // Non-blocking
     }
 
     clearCart();

@@ -123,7 +123,6 @@ export default function OrdersPage() {
       setSubmittedReviews(map);
     } catch {}
   }
-
   async function handleSubmitReview(e: React.FormEvent) {
     e.preventDefault();
     if (!reviewModal) return;
