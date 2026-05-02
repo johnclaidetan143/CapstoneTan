@@ -223,7 +223,6 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <p className="font-bold text-gray-900 text-sm">{order.orderNumber}</p>
                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${statusColor[order.trackingStatus] ?? "bg-gray-100 text-gray-500"}`}>{order.trackingStatus}</span>
-                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${paymentColor[order.payment.status] ?? "bg-gray-100 text-gray-500"}`}>{order.payment.status}</span>
                   </div>
                   <p className="text-xs text-gray-400">
                     {order.customer?.name ?? order.customerName}
@@ -271,18 +270,6 @@ export default function AdminDashboardPage() {
                           ✓ Mark as Paid & Confirm
                         </button>
                       )}
-
-                      <div>
-                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Payment Status</p>
-                        <div className="flex gap-2 flex-wrap">
-                          {["Pending Verification", "Pending Payment", "Verified", "Rejected"].map((s) => (
-                            <button key={s} onClick={() => patchOrder(order.orderNumber, undefined, s)}
-                              className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${order.payment.status === s ? "bg-gray-900 text-white border-gray-900" : "border-gray-200 text-gray-500 hover:border-gray-400"}`}>
-                              {s === "Pending Verification" ? "Pending" : s}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
 
                       <div>
                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Order Status</p>
