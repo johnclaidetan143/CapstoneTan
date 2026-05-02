@@ -7,12 +7,13 @@ export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  function handleRegister(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
@@ -21,13 +22,34 @@ export default function RegisterPage() {
       return;
     }
 
-    localStorage.setItem("registeredUser", JSON.stringify({
-      name: form.name,
-      email: form.email,
-      password: form.password,
-    }));
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+      });
 
-    router.push("/login");
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.message || "Registration failed.");
+        return;
+      }
+
+      // Save locally so login page can also find it
+      localStorage.setItem("registeredUser", JSON.stringify({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      }));
+
+      router.push("/login");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -67,8 +89,9 @@ export default function RegisterPage() {
           {error && <p className="text-red-400 text-xs">{error}</p>}
 
           <button type="submit"
-            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700">
-            Register
+            disabled={loading}
+            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700 disabled:opacity-60">
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
 
