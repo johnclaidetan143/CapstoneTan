@@ -8,14 +8,18 @@ import Footer from "@/components/Footer";
 import { allProducts } from "@/lib/products";
 import { addToCart } from "@/lib/cart";
 import { getWishlist, toggleWishlist } from "@/lib/wishlist";
+import { getStock } from "@/lib/stock";
+import { showToast } from "@/lib/toast";
 
 export default function WishlistPage() {
   const router = useRouter();
   const [wishlistIds, setWishlistIds] = useState<number[]>([]);
+  const [stock, setStock] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) router.push("/login");
     setWishlistIds(getWishlist());
+    setStock(getStock());
   }, [router]);
 
   const products = allProducts.filter((p) => wishlistIds.includes(p.id));
@@ -27,8 +31,24 @@ export default function WishlistPage() {
   }
 
   function handleAddToCart(p: typeof allProducts[0]) {
+    if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
+    const qty = stock[p.id] ?? 10;
+    if (qty === 0) { showToast("This item is out of stock.", "error"); return; }
     addToCart(p);
     window.dispatchEvent(new Event("cartUpdated"));
+    showToast(`${p.name} added to cart! 🛒`);
+  }
+
+  function handleMoveToCart(p: typeof allProducts[0]) {
+    if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
+    const qty = stock[p.id] ?? 10;
+    if (qty === 0) { showToast("This item is out of stock.", "error"); return; }
+    addToCart(p);
+    const updated = toggleWishlist(p.id);
+    setWishlistIds([...updated]);
+    window.dispatchEvent(new Event("cartUpdated"));
+    window.dispatchEvent(new Event("wishlistUpdated"));
+    showToast(`${p.name} moved to cart! 🛒`);
   }
 
   return (
@@ -63,16 +83,16 @@ export default function WishlistPage() {
                   <p className="text-xs text-gray-400 mt-0.5">{p.subtitle}</p>
                   <p className="text-amber-600 font-bold mt-2">₱{p.price}.00</p>
                   <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => handleAddToCart(p)}
-                      className="flex-1 bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold py-2 rounded-full transition-colors"
-                    >
+                    <button onClick={() => handleAddToCart(p)}
+                      className="flex-1 bg-gray-900 hover:bg-amber-600 text-white text-xs font-semibold py-2 rounded-full transition-colors">
                       Add to Cart
                     </button>
-                    <button
-                      onClick={() => handleRemove(p.id)}
-                      className="w-9 h-9 rounded-full border border-red-200 text-red-400 hover:bg-red-50 transition-colors text-sm flex items-center justify-center"
-                    >
+                    <button onClick={() => handleMoveToCart(p)}
+                      className="flex-1 bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold py-2 rounded-full transition-colors">
+                      Move to Cart
+                    </button>
+                    <button onClick={() => handleRemove(p.id)}
+                      className="w-9 h-9 rounded-full border border-red-200 text-red-400 hover:bg-red-50 transition-colors text-sm flex items-center justify-center">
                       ♥
                     </button>
                   </div>

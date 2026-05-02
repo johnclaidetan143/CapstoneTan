@@ -11,7 +11,42 @@ import { getAverageRating, getReviews } from "@/lib/reviews";
 import { showToast } from "@/lib/toast";
 import { allProducts } from "@/lib/products";
 
-const statusColor: Record<string, string> = {
+const TRACKING_STEPS = ["Pending Verification", "Confirmed", "Shipped", "Delivered"] as const;
+
+function OrderTimeline({ status }: { status: string }) {
+  const cancelled = status === "Cancelled";
+  const currentIdx = TRACKING_STEPS.indexOf(status as typeof TRACKING_STEPS[number]);
+  return (
+    <div className="flex items-center gap-0 mb-4">
+      {TRACKING_STEPS.map((step, i) => {
+        const done = !cancelled && currentIdx >= i;
+        const active = !cancelled && currentIdx === i;
+        return (
+          <div key={step} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                cancelled ? "border-red-300 bg-red-50 text-red-400" :
+                done ? "border-amber-500 bg-amber-500 text-white" : "border-gray-200 bg-white text-gray-300"
+              } ${active ? "ring-2 ring-amber-300 ring-offset-1" : ""}`}>
+                {cancelled ? "✕" : done ? "✓" : i + 1}
+              </div>
+              <p className={`text-[9px] font-semibold mt-1 text-center w-16 leading-tight ${
+                cancelled ? "text-red-400" : done ? "text-amber-600" : "text-gray-300"
+              }`}>{cancelled && i === 0 ? "Cancelled" : step}</p>
+            </div>
+            {i < TRACKING_STEPS.length - 1 && (
+              <div className={`flex-1 h-0.5 mx-1 mb-4 ${
+                !cancelled && currentIdx > i ? "bg-amber-500" : "bg-gray-200"
+              }`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
   "Pending Verification": "bg-yellow-100 text-yellow-700",
   "Pending Payment":      "bg-orange-100 text-orange-600",
   "Confirmed":            "bg-blue-100 text-blue-700",
@@ -283,6 +318,7 @@ export default function OrdersPage() {
 
                     {expanded === order.orderNumber && (
                       <div className="border-t border-gray-100 p-5 flex flex-col gap-4">
+                        <OrderTimeline status={order.trackingStatus} />
                         {order.cancelledAt && <p className="text-xs text-red-400 font-semibold">Cancelled on {order.cancelledAt}</p>}
                         <div>
                           <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Items Ordered</p>

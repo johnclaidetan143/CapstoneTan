@@ -93,6 +93,9 @@ export default function LoginPage() {
           No account yet?{" "}
           <a href="/register" className="text-gray-700 font-semibold">Register</a>
         </p>
+        <p className="text-xs text-center text-gray-400 mt-2">
+          <a href="/forgot-password" className="text-gray-500 hover:text-amber-600 transition-colors">Forgot password?</a>
+        </p>
       </div>
     </div>
   );

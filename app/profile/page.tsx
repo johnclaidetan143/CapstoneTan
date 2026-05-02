@@ -37,18 +37,34 @@ export default function ProfilePage() {
   if (!mounted) return null;
 
   // --- Profile Save ---
-  function handleProfileSave(e: React.FormEvent) {
+  async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
+    const storedUser = localStorage.getItem("registeredUser");
+    const userEmail = storedUser ? JSON.parse(storedUser).email : "";
+    if (!userEmail) return;
+
+    // Update Supabase
+    await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: userEmail, name: profile.name, phone: profile.phone }),
+    });
+
+    // Update localStorage
     const user = getUser();
-    if (!user) return;
-    saveUser({ ...user, name: profile.name, email: profile.email, phone: profile.phone });
+    if (user) saveUser({ ...user, name: profile.name, email: profile.email, phone: profile.phone });
+    const stored = localStorage.getItem("registeredUser");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      localStorage.setItem("registeredUser", JSON.stringify({ ...parsed, name: profile.name }));
+    }
     window.dispatchEvent(new Event("cartUpdated"));
     setProfileMsg("Profile updated successfully!");
     setTimeout(() => setProfileMsg(""), 3000);
   }
 
   // --- Password Change ---
-  function handlePasswordSave(e: React.FormEvent) {
+  async function handlePasswordSave(e: React.FormEvent) {
     e.preventDefault();
     setPwError(""); setPwMsg("");
     const user = getUser();
@@ -56,7 +72,17 @@ export default function ProfilePage() {
     if (pwForm.current !== user.password) { setPwError("Current password is incorrect."); return; }
     if (pwForm.newPw.length < 6) { setPwError("New password must be at least 6 characters."); return; }
     if (pwForm.newPw !== pwForm.confirm) { setPwError("Passwords do not match."); return; }
+
+    // Update Supabase
+    await fetch("/api/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: user.email, password: pwForm.newPw }),
+    });
+
     saveUser({ ...user, password: pwForm.newPw });
+    const stored = localStorage.getItem("registeredUser");
+    if (stored) localStorage.setItem("registeredUser", JSON.stringify({ ...JSON.parse(stored), password: pwForm.newPw }));
     setPwForm({ current: "", newPw: "", confirm: "" });
     setPwMsg("Password changed successfully!");
     setTimeout(() => setPwMsg(""), 3000);
