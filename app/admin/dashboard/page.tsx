@@ -50,7 +50,6 @@ export default function AdminDashboardPage() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [lowStock, setLowStock] = useState<{ id: number; name: string; qty: number }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkStatus, setBulkStatus] = useState("");
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newOrderBanner, setNewOrderBanner] = useState(false);
@@ -111,12 +110,7 @@ export default function AdminDashboardPage() {
     await patchOrder(orderNumber, "Confirmed", "Verified");
   }
 
-  async function handleBulkUpdate() {
-    if (!bulkStatus || selected.size === 0) return;
-    await Promise.all([...selected].map((num) => patchOrder(num, bulkStatus)));
-    setSelected(new Set());
-    setBulkStatus("");
-  }
+  async function handleBulkUpdate() {}
 
   function toggleSelect(orderNumber: string) {
     setSelected((prev) => {
@@ -214,19 +208,7 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {selected.size > 0 && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 flex-wrap">
-          <p className="text-sm font-semibold text-amber-700">{selected.size} selected</p>
-          <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)} className="border rounded-xl px-3 py-1.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-amber-300">
-            <option value="">— Set Status —</option>
-            {TRACKING.map((s) => <option key={s}>{s}</option>)}
-          </select>
-          <button onClick={handleBulkUpdate} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors">Apply</button>
-          <button onClick={() => setSelected(new Set())} className="text-xs text-gray-400 hover:text-gray-600 font-semibold">Clear</button>
-        </div>
-      )}
-
-      {loading ? (
+{loading ? (
         <div className="bg-white rounded-2xl shadow-sm p-16 text-center text-gray-400">Loading orders...</div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm p-16 text-center text-gray-400">
@@ -234,18 +216,10 @@ export default function AdminDashboardPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-2 px-2">
-            <input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0}
-              onChange={() => selected.size === filtered.length ? setSelected(new Set()) : setSelected(new Set(filtered.map((o) => o.orderNumber)))}
-              className="accent-amber-500 w-4 h-4" />
-            <span className="text-xs text-gray-400 font-semibold">Select All ({filtered.length})</span>
-          </div>
           {filtered.map((order) => (
             <div key={order.orderNumber} className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-4 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition-colors"
                 onClick={() => setExpanded(expanded === order.orderNumber ? null : order.orderNumber)}>
-                <input type="checkbox" checked={selected.has(order.orderNumber)} onClick={(e) => e.stopPropagation()}
-                  onChange={() => toggleSelect(order.orderNumber)} className="accent-amber-500 w-4 h-4 flex-shrink-0" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <p className="font-bold text-gray-900 text-sm">{order.orderNumber}</p>

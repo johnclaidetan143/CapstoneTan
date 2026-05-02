@@ -22,7 +22,6 @@ const links = [
   { href: "/admin/sales",     label: "📊 Sales" },
   { href: "/admin/promos",    label: "🎟️ Promos & Banners" },
   { href: "/admin/reviews",   label: "⭐ Reviews" },
-  { href: "/admin/import",    label: "📥 Bulk Import" },
   { href: "/admin/settings",  label: "⚙️ Settings" },
 ];
 
