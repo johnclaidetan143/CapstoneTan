@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,23 +15,15 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Invalid email or password.");
-        return;
-      }
-
+      if (!res.ok) { setError(data.message || "Invalid email or password."); return; }
       const user = data.user;
-
       if (user.role === "admin") {
         localStorage.setItem("adminLoggedIn", "true");
         localStorage.setItem("adminUser", JSON.stringify(user));
@@ -48,54 +41,84 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
-      <div className="bg-gray-50 p-8 rounded-xl shadow w-full max-w-sm">
-        <h1 className="text-base font-bold text-gray-800 text-center mb-4">
-          Cheni Craft
-        </h1>
+    <div className="min-h-screen flex">
+      {/* Left — Decorative Panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-rose-900 via-rose-800 to-amber-900 flex-col items-center justify-center p-12 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
+        <div className="relative z-10 text-center">
+          <img src="/logo.png" alt="Cheni Craft" className="h-24 w-auto object-contain mx-auto mb-8 drop-shadow-2xl" />
+          <h2 className="text-4xl font-bold text-white mb-4 leading-tight">Handcrafted<br />with Love</h2>
+          <p className="text-rose-200 text-base leading-relaxed max-w-xs">Discover our collection of beautiful felt bouquets, flower pots, and charming keychains.</p>
+          <div className="flex justify-center gap-3 mt-8">
+            {["🌸", "💐", "🌿", "✨"].map((e, i) => (
+              <span key={i} className="text-2xl opacity-80">{e}</span>
+            ))}
+          </div>
+        </div>
+      </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
-          />
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border rounded-lg px-3 py-1.5 pr-9 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300"
-            />
-            <button type="button" onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
-              {showPassword ? "🙈" : "👁️"}
-            </button>
+      {/* Right — Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center bg-[#fdfaf7] px-6 py-12">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-8">
+            <img src="/logo.png" alt="Cheni Craft" className="h-16 w-auto object-contain mx-auto" />
           </div>
 
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Welcome back</h1>
+            <p className="text-gray-500 mt-1 text-sm">Sign in to your Cheni Craft account</p>
+          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="bg-gray-800 text-white py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-700 disabled:opacity-60"
-          >
-            {loading ? "Logging in..." : "Log In"}
-          </button>
-        </form>
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-semibold text-gray-700">Email address</label>
+              <input type="email" placeholder="you@example.com" value={email}
+                onChange={(e) => setEmail(e.target.value)} required
+                className="border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all shadow-sm" />
+            </div>
 
-        <p className="text-xs text-center text-gray-400 mt-4">
-          No account yet?{" "}
-          <a href="/register" className="text-gray-700 font-semibold">Register</a>
-        </p>
-        <p className="text-xs text-center text-gray-400 mt-2">
-          <a href="/forgot-password" className="text-gray-500 hover:text-amber-600 transition-colors">Forgot password?</a>
-        </p>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-gray-700">Password</label>
+                <Link href="/forgot-password" className="text-xs text-rose-600 hover:text-rose-700 font-medium transition-colors">Forgot password?</Link>
+              </div>
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={password}
+                  onChange={(e) => setPassword(e.target.value)} required
+                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm text-gray-800 bg-white focus:outline-none focus:ring-2 focus:ring-rose-300 focus:border-transparent transition-all shadow-sm" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
+                  {showPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">
+                <span className="text-red-500 text-sm">⚠️</span>
+                <p className="text-red-600 text-xs font-medium">{error}</p>
+              </div>
+            )}
+
+            <button type="submit" disabled={loading}
+              className="bg-gradient-to-r from-rose-700 to-amber-700 hover:from-rose-600 hover:to-amber-600 text-white font-semibold py-3.5 rounded-xl text-sm transition-all shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed">
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : "Sign In"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="text-rose-700 font-semibold hover:text-rose-800 transition-colors">Create one</Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

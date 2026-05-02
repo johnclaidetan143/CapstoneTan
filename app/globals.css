@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fdfaf7;
+  --foreground: #1a1a1a;
 }
 
 @theme inline {
@@ -19,6 +19,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
 }
 
 @media print {
