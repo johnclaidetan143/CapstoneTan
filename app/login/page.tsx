@@ -11,11 +11,10 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // OTP step
   const [step, setStep] = useState<"credentials" | "otp">("credentials");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [pendingUser, setPendingUser] = useState<{ id: string; name: string; email: string; role: string } | null>(null);
-  const [devOtp, setDevOtp] = useState(""); // show OTP for testing
+  const [resending, setResending] = useState(false);
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   async function handleLogin(e: React.FormEvent) {
@@ -49,7 +48,6 @@ export default function LoginPage() {
       });
       const otpData = await otpRes.json();
       setPendingUser(user);
-      setDevOtp(otpData.otp ?? ""); // show for testing since no email
       setStep("otp");
     } catch {
       setError("Something went wrong. Please try again.");
@@ -191,17 +189,8 @@ export default function LoginPage() {
                   <span className="text-2xl">🔐</span>
                 </div>
                 <h1 className="text-3xl font-bold text-gray-900">Verify your identity</h1>
-                <p className="text-gray-500 mt-1 text-sm">Enter the 6-digit code shown below</p>
+                <p className="text-gray-500 mt-1 text-sm">We sent a 6-digit code to <span className="font-semibold text-gray-700">{email}</span></p>
               </div>
-
-              {/* Show OTP for testing (since no email service) */}
-              {devOtp && (
-                <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1">Your OTP Code</p>
-                  <p className="text-2xl font-extrabold text-amber-600 tracking-[0.3em]">{devOtp}</p>
-                  <p className="text-xs text-amber-600 mt-1">Valid for 5 minutes</p>
-                </div>
-              )}
 
               <form onSubmit={handleVerifyOtp} className="flex flex-col gap-6">
                 <div className="flex flex-col gap-3">
@@ -243,6 +232,18 @@ export default function LoginPage() {
                 <button type="button" onClick={() => { setStep("credentials"); setOtp(["","","","","",""]); setError(""); }}
                   className="text-sm text-gray-500 hover:text-gray-700 transition-colors text-center">
                   ← Back to login
+                </button>
+
+                <button type="button" disabled={resending}
+                  onClick={async () => {
+                    setResending(true);
+                    await fetch("/api/auth/otp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email }) });
+                    setResending(false);
+                    setError("");
+                    setOtp(["","","","","",""]);
+                  }}
+                  className="text-sm text-rose-600 hover:text-rose-700 font-medium transition-colors text-center disabled:opacity-50">
+                  {resending ? "Sending..." : "Resend OTP"}
                 </button>
               </form>
             </>
