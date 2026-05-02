@@ -52,8 +52,46 @@ export default function OrdersPage() {
   useEffect(() => {
     if (!localStorage.getItem("loggedIn")) { router.push("/login"); return; }
     setCart(getCart());
-    setOrders(getOrderHistory());
-    setUnreadCount(getUnreadNotifications().length);
+
+    // Fetch orders from Supabase by email
+    const storedUser = localStorage.getItem("registeredUser");
+    const userEmail = storedUser ? JSON.parse(storedUser).email : "";
+
+    if (userEmail) {
+      fetch(`/api/orders?email=${encodeURIComponent(userEmail)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          const fetched = (data.orders ?? []).map((o: {
+            orderNumber: string; date: string; items: OrderRecord["items"];
+            total: number; customer: OrderRecord["customer"]; payment: OrderRecord["payment"];
+            trackingStatus: OrderRecord["trackingStatus"]; notificationRead?: boolean; cancelledAt?: string;
+          }) => ({
+            orderNumber: o.orderNumber,
+            date: o.date,
+            items: o.items,
+            total: o.total,
+            customer: o.customer,
+            payment: o.payment,
+            trackingStatus: o.trackingStatus,
+            notificationRead: o.notificationRead ?? false,
+            cancelledAt: o.cancelledAt,
+          }));
+          // Merge with localStorage orders (avoid duplicates)
+          const local = getOrderHistory();
+          const localNums = new Set(fetched.map((o: OrderRecord) => o.orderNumber));
+          const merged = [...fetched, ...local.filter((o) => !localNums.has(o.orderNumber))];
+          setOrders(merged);
+          setUnreadCount(merged.filter((o: OrderRecord) => !o.notificationRead).length);
+        })
+        .catch(() => {
+          setOrders(getOrderHistory());
+          setUnreadCount(getUnreadNotifications().length);
+        });
+    } else {
+      setOrders(getOrderHistory());
+      setUnreadCount(getUnreadNotifications().length);
+    }
+
     setMounted(true);
   }, [router]);
 

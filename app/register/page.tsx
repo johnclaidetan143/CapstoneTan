@@ -8,6 +8,8 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -75,15 +77,27 @@ export default function RegisterPage() {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-600">Password</label>
-            <input name="password" type="password" placeholder="Enter your password"
-              value={form.password} onChange={handleChange} required
-              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
+            <div className="relative">
+              <input name="password" type={showPassword ? "text" : "password"} placeholder="Enter your password"
+                value={form.password} onChange={handleChange} required
+                className="w-full border rounded-lg px-3 py-1.5 pr-9 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-600">Confirm Password</label>
-            <input name="confirm" type="password" placeholder="Re-enter your password"
-              value={form.confirm} onChange={handleChange} required
-              className="border rounded-lg px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
+            <div className="relative">
+              <input name="confirm" type={showConfirm ? "text" : "password"} placeholder="Re-enter your password"
+                value={form.confirm} onChange={handleChange} required
+                className="w-full border rounded-lg px-3 py-1.5 pr-9 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-300" />
+              <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+                {showConfirm ? "🙈" : "👁️"}
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-red-400 text-xs">{error}</p>}
