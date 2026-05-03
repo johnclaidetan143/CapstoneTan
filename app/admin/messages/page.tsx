@@ -10,6 +10,8 @@ type Message = {
   email: string;
   message: string;
   is_read: boolean;
+  admin_reply?: string | null;
+  replied_at?: string | null;
   created_at: string;
 };
 
@@ -19,6 +21,7 @@ export default function AdminMessagesPage() {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
 
   const fetchMessages = useCallback(async () => {
     try {
@@ -70,6 +73,35 @@ export default function AdminMessagesPage() {
     setMessages((prev) => prev.filter((m) => m.id !== id));
   }
 
+  async function handleReply(id: string) {
+    const text = (replyText[id] ?? "").trim();
+    if (!text) return;
+
+    const res = await fetch("/api/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "reply", adminReply: text }),
+    });
+    if (!res.ok) return;
+
+    setMessages((prev) => prev.map((m) =>
+      m.id === id
+        ? { ...m, admin_reply: text, replied_at: new Date().toISOString() }
+        : m
+    ));
+    setReplyText((prev) => ({ ...prev, [id]: "" }));
+  }
+
+  async function clearReply(id: string) {
+    const res = await fetch("/api/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "clearReply" }),
+    });
+    if (!res.ok) return;
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, admin_reply: null, replied_at: null } : m)));
+  }
+
   function handleExpand(id: string) {
     setExpanded(expanded === id ? null : id);
     const msg = messages.find((m) => m.id === id);
@@ -99,9 +131,9 @@ export default function AdminMessagesPage() {
           </h1>
         </div>
         <div className="flex gap-2">
-          <button onClick={fetchMessages} className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-full transition-colors">🔄 Refresh</button>
+          <button onClick={fetchMessages} className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-full transition-colors">Refresh</button>
           {unread > 0 && (
-            <button onClick={markAllRead} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors">✓ Mark All Read</button>
+            <button onClick={markAllRead} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors">Mark All Read</button>
           )}
         </div>
       </div>
@@ -110,8 +142,8 @@ export default function AdminMessagesPage() {
         <div className="bg-white rounded-2xl shadow-sm p-16 text-center text-gray-400">Loading messages...</div>
       ) : messages.length === 0 ? (
         <div className="bg-white rounded-2xl shadow-sm p-16 text-center">
-          <span className="text-4xl">✉️</span>
-          <p className="text-gray-400 mt-3 text-sm">No messages yet. Customer messages from the Contact page will appear here.</p>
+          <span className="text-4xl">??</span>
+          <p className="text-gray-400 mt-3 text-sm">No messages yet. User messages from the Contact page will appear here.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -136,7 +168,7 @@ export default function AdminMessagesPage() {
                   <p className="text-xs text-gray-400">{timeAgo(msg.created_at)}</p>
                   <button onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id); }}
                     className="text-xs text-red-400 hover:text-red-600 font-semibold transition-colors">Delete</button>
-                  <span className="text-gray-400">{expanded === msg.id ? "▲" : "▼"}</span>
+                  <span className="text-gray-400">{expanded === msg.id ? "?" : "?"}</span>
                 </div>
               </div>
 
@@ -155,10 +187,33 @@ export default function AdminMessagesPage() {
                   <div className="bg-gray-50 rounded-xl p-4">
                     <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{msg.message}</p>
                   </div>
+
+                  {msg.admin_reply ? (
+                    <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                      <p className="text-xs font-bold text-amber-700 mb-1">Your reply</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.admin_reply}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-[11px] text-gray-500">{msg.replied_at ? new Date(msg.replied_at).toLocaleString("en-PH") : ""}</p>
+                        <button onClick={() => clearReply(msg.id)} className="text-xs text-red-500 hover:text-red-700 font-semibold">Delete Reply</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex gap-2">
+                      <input
+                        value={replyText[msg.id] ?? ""}
+                        onChange={(e) => setReplyText((prev) => ({ ...prev, [msg.id]: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && handleReply(msg.id)}
+                        placeholder="Write a reply for this user..."
+                        className="flex-1 border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                      />
+                      <button onClick={() => handleReply(msg.id)} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-4 rounded-xl transition-colors">Reply</button>
+                    </div>
+                  )}
+
                   <div className="mt-3 flex gap-2">
                     <a href={`mailto:${msg.email}?subject=Re: Your message to Cheni Craft`}
                       className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors">
-                      ✉️ Reply via Email
+                      Reply via Email
                     </a>
                     <button onClick={() => deleteMessage(msg.id)}
                       className="border border-red-200 hover:border-red-400 text-red-400 hover:text-red-600 text-xs font-semibold px-4 py-2 rounded-full transition-colors">

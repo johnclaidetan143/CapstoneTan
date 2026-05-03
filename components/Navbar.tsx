@@ -86,6 +86,7 @@ export default function Navbar() {
           {loggedIn && navLink("/orders", "Cart & Orders")}
           {loggedIn && navLink("/history", "My Orders")}
           {loggedIn && navLink("/profile", "Profile")}
+          {loggedIn && navLink("/messages", "Messages")}
           {navLink("/about", "About")}
           {navLink("/contact", "Contact")}
         </div>

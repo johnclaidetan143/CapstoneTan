@@ -54,6 +54,7 @@ export default function AdminDashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [newOrderBanner, setNewOrderBanner] = useState(false);
+  const [messageStats, setMessageStats] = useState({ total: 0, unread: 0 });
   const prevOrderCount = useRef(0);
 
   const fetchOrders = useCallback(async () => {
@@ -73,15 +74,33 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  const fetchMessageStats = useCallback(async () => {
+    try {
+      const res = await fetch("/api/messages");
+      const data = await res.json();
+      const items = data.messages ?? [];
+      setMessageStats({
+        total: items.length,
+        unread: items.filter((m: { is_read: boolean }) => !m.is_read).length,
+      });
+    } catch {
+      setMessageStats({ total: 0, unread: 0 });
+    }
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
     setLowStock(getLowStockProducts());
     fetchOrders();
+    fetchMessageStats();
     // Poll every 10 seconds for new orders
-    const interval = setInterval(fetchOrders, 10000);
+    const interval = setInterval(() => {
+      fetchOrders();
+      fetchMessageStats();
+    }, 10000);
     return () => clearInterval(interval);
-  }, [router, fetchOrders]);
+  }, [router, fetchOrders, fetchMessageStats]);
 
   if (!mounted) return null;
 
@@ -197,6 +216,21 @@ export default function AdminDashboardPage() {
           <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by order #, name, or email..."
             className="border rounded-xl px-4 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300 w-60" />
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-5">
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <p className="text-xs text-gray-500 font-semibold uppercase tracking-wide">User Messages</p>
+          <p className="text-2xl font-extrabold text-gray-900 mt-1">{messageStats.total}</p>
+          <p className="text-xs text-gray-400 mt-1">{messageStats.unread} unread</p>
+        </div>
+        <button
+          onClick={() => router.push("/admin/messages")}
+          className="bg-white rounded-2xl shadow-sm p-4 text-left hover:shadow-md transition-shadow"
+        >
+          <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide">Manage Messages</p>
+          <p className="text-sm text-gray-700 mt-2">Open inbox and reply to users</p>
+        </button>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-5">
