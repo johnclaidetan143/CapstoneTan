@@ -6,16 +6,16 @@ import { isAdminLoggedIn } from "@/lib/admin";
 
 type ChatMessage = {
   id: string;
-  user_email: string;
+  user_id: string;
   user_name: string;
-  content: string;
+  message: string;
   sender: "user" | "admin";
   is_read: boolean;
   created_at: string;
 };
 
 type Conversation = {
-  user_email: string;
+  user_id: string;
   user_name: string;
   last_message: string;
   last_time: string;
@@ -46,7 +46,7 @@ export default function AdminMessagesPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeEmail, setActiveEmail] = useState<string | null>(null);
+  const [activeUserId, setActiveUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -59,20 +59,24 @@ export default function AdminMessagesPage() {
     try {
       const res = await fetch("/api/chat");
       const data = await res.json();
+      if (data.error) console.error("[AdminMessages] fetchConversations error:", data.error, data.code);
       setConversations(data.conversations ?? []);
-    } catch {
+    } catch (err) {
+      console.error("[AdminMessages] fetchConversations network error:", err);
       setConversations([]);
     } finally {
       setLoadingConvos(false);
     }
   }, []);
 
-  const fetchMessages = useCallback(async (email: string) => {
+  const fetchMessages = useCallback(async (uid: string) => {
     try {
-      const res = await fetch(`/api/chat?email=${encodeURIComponent(email)}`);
+      const res = await fetch(`/api/chat?user_id=${encodeURIComponent(uid)}`);
       const data = await res.json();
+      if (data.error) console.error("[AdminMessages] fetchMessages error:", data.error, data.code);
       setMessages(data.messages ?? []);
-    } catch {
+    } catch (err) {
+      console.error("[AdminMessages] fetchMessages network error:", err);
       setMessages([]);
     }
   }, []);
@@ -87,45 +91,44 @@ export default function AdminMessagesPage() {
 
   // Poll active conversation messages every 5s
   useEffect(() => {
-    if (!activeEmail) return;
-    const interval = setInterval(() => fetchMessages(activeEmail), 5000);
+    if (!activeUserId) return;
+    const interval = setInterval(() => fetchMessages(activeUserId), 5000);
     return () => clearInterval(interval);
-  }, [activeEmail, fetchMessages]);
+  }, [activeUserId, fetchMessages]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  async function openConversation(email: string) {
-    setActiveEmail(email);
+  async function openConversation(uid: string) {
+    setActiveUserId(uid);
     setLoadingMsgs(true);
     setMessages([]);
-    await fetchMessages(email);
+    await fetchMessages(uid);
     setLoadingMsgs(false);
-    // Mark as read
     await fetch("/api/chat", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ user_id: uid }),
     });
     setConversations((prev) =>
-      prev.map((c) => (c.user_email === email ? { ...c, unread: 0 } : c))
+      prev.map((c) => (c.user_id === uid ? { ...c, unread: 0 } : c))
     );
     inputRef.current?.focus();
   }
 
   async function sendReply() {
     const text = input.trim();
-    if (!text || sending || !activeEmail) return;
+    if (!text || sending || !activeUserId) return;
     setSending(true);
     setInput("");
 
-    const activeConvo = conversations.find((c) => c.user_email === activeEmail);
+    const activeConvo = conversations.find((c) => c.user_id === activeUserId);
     const optimistic: ChatMessage = {
       id: `temp_${Date.now()}`,
-      user_email: activeEmail,
+      user_id: activeUserId,
       user_name: activeConvo?.user_name ?? "",
-      content: text,
+      message: text,
       sender: "admin",
       is_read: false,
       created_at: new Date().toISOString(),
@@ -133,18 +136,21 @@ export default function AdminMessagesPage() {
     setMessages((prev) => [...prev, optimistic]);
 
     try {
-      await fetch("/api/chat", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_email: activeEmail,
+          user_id: activeUserId,
           user_name: activeConvo?.user_name ?? "",
-          content: text,
+          message: text,
           sender: "admin",
         }),
       });
-      await fetchMessages(activeEmail);
-    } catch {
+      const data = await res.json();
+      if (!res.ok) console.error("[AdminMessages] sendReply failed:", res.status, data);
+      await fetchMessages(activeUserId);
+    } catch (err) {
+      console.error("[AdminMessages] sendReply network error:", err);
       setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
       setInput(text);
     } finally {
@@ -162,7 +168,7 @@ export default function AdminMessagesPage() {
 
   if (!mounted) return null;
 
-  const activeConvo = conversations.find((c) => c.user_email === activeEmail);
+  const activeConvo = conversations.find((c) => c.user_id === activeUserId);
 
   return (
     <AdminLayout>
@@ -188,10 +194,10 @@ export default function AdminMessagesPage() {
             ) : (
               conversations.map((convo) => (
                 <button
-                  key={convo.user_email}
-                  onClick={() => openConversation(convo.user_email)}
+                  key={convo.user_id}
+                  onClick={() => openConversation(convo.user_id)}
                   className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-rose-50 transition-colors border-b border-gray-50 ${
-                    activeEmail === convo.user_email ? "bg-rose-50 border-l-4 border-l-rose-500" : ""
+                    activeUserId === convo.user_id ? "bg-rose-50 border-l-4 border-l-rose-500" : ""
                   }`}
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-amber-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -223,7 +229,7 @@ export default function AdminMessagesPage() {
 
         {/* Right panel — chat window */}
         <div className="flex-1 flex flex-col min-w-0">
-          {!activeEmail ? (
+          {!activeUserId ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
               <div className="text-5xl mb-3">💬</div>
               <p className="text-gray-500 font-semibold">Select a conversation</p>
@@ -238,7 +244,7 @@ export default function AdminMessagesPage() {
                 </div>
                 <div>
                   <p className="font-bold text-gray-900 text-sm">{activeConvo?.user_name}</p>
-                  <p className="text-xs text-gray-400">{activeEmail}</p>
+                  <p className="text-xs text-gray-400">{activeUserId}</p>
                 </div>
               </div>
 
@@ -275,7 +281,7 @@ export default function AdminMessagesPage() {
                                   : "bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100"
                               }`}
                             >
-                              {msg.content}
+                              {msg.message}
                             </div>
                             <span className="text-[10px] text-gray-400 mt-0.5 px-1">{formatBubbleTime(msg.created_at)}</span>
                           </div>
@@ -295,7 +301,7 @@ export default function AdminMessagesPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Reply to ${activeConvo?.user_name ?? "user"}...`}
+                  placeholder={`Reply to ${activeConvo?.user_name ?? "user"}…`}
                   className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-300 placeholder-gray-400"
                   disabled={sending}
                 />
