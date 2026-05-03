@@ -1,231 +1,318 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminLayout from "@/components/AdminLayout";
 import { isAdminLoggedIn } from "@/lib/admin";
 
-type Message = {
+type ChatMessage = {
   id: string;
-  name: string;
-  email: string;
-  message: string;
+  user_email: string;
+  user_name: string;
+  content: string;
+  sender: "user" | "admin";
   is_read: boolean;
-  admin_reply?: string | null;
-  replied_at?: string | null;
   created_at: string;
 };
 
+type Conversation = {
+  user_email: string;
+  user_name: string;
+  last_message: string;
+  last_time: string;
+  unread: number;
+};
+
+function formatTime(iso: string) {
+  const d = new Date(iso);
+  const now = new Date();
+  const isToday = d.toDateString() === now.toDateString();
+  if (isToday) return d.toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString("en-PH", { month: "short", day: "numeric" });
+}
+
+function formatBubbleTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("en-PH", { hour: "2-digit", minute: "2-digit" });
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function isSameDay(a: string, b: string) {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
 export default function AdminMessagesPage() {
   const router = useRouter();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeEmail, setActiveEmail] = useState<string | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [loadingConvos, setLoadingConvos] = useState(true);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const fetchMessages = useCallback(async () => {
+  const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch("/api/messages");
+      const res = await fetch("/api/chat");
+      const data = await res.json();
+      setConversations(data.conversations ?? []);
+    } catch {
+      setConversations([]);
+    } finally {
+      setLoadingConvos(false);
+    }
+  }, []);
+
+  const fetchMessages = useCallback(async (email: string) => {
+    try {
+      const res = await fetch(`/api/chat?email=${encodeURIComponent(email)}`);
       const data = await res.json();
       setMessages(data.messages ?? []);
     } catch {
       setMessages([]);
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     setMounted(true);
     if (!isAdminLoggedIn()) { router.push("/admin"); return; }
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 15000);
+    fetchConversations();
+    const interval = setInterval(fetchConversations, 5000);
     return () => clearInterval(interval);
-  }, [router, fetchMessages]);
+  }, [router, fetchConversations]);
+
+  // Poll active conversation messages every 5s
+  useEffect(() => {
+    if (!activeEmail) return;
+    const interval = setInterval(() => fetchMessages(activeEmail), 5000);
+    return () => clearInterval(interval);
+  }, [activeEmail, fetchMessages]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function openConversation(email: string) {
+    setActiveEmail(email);
+    setLoadingMsgs(true);
+    setMessages([]);
+    await fetchMessages(email);
+    setLoadingMsgs(false);
+    // Mark as read
+    await fetch("/api/chat", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    setConversations((prev) =>
+      prev.map((c) => (c.user_email === email ? { ...c, unread: 0 } : c))
+    );
+    inputRef.current?.focus();
+  }
+
+  async function sendReply() {
+    const text = input.trim();
+    if (!text || sending || !activeEmail) return;
+    setSending(true);
+    setInput("");
+
+    const activeConvo = conversations.find((c) => c.user_email === activeEmail);
+    const optimistic: ChatMessage = {
+      id: `temp_${Date.now()}`,
+      user_email: activeEmail,
+      user_name: activeConvo?.user_name ?? "",
+      content: text,
+      sender: "admin",
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
+
+    try {
+      await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_email: activeEmail,
+          user_name: activeConvo?.user_name ?? "",
+          content: text,
+          sender: "admin",
+        }),
+      });
+      await fetchMessages(activeEmail);
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== optimistic.id));
+      setInput(text);
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendReply();
+    }
+  }
 
   if (!mounted) return null;
 
-  async function markRead(id: string) {
-    await fetch("/api/messages", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    setMessages((prev) => prev.map((m) => m.id === id ? { ...m, is_read: true } : m));
-  }
-
-  async function markAllRead() {
-    await fetch("/api/messages", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "all" }),
-    });
-    setMessages((prev) => prev.map((m) => ({ ...m, is_read: true })));
-  }
-
-  async function deleteMessage(id: string) {
-    if (!confirm("Delete this message?")) return;
-    await fetch("/api/messages", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-    setMessages((prev) => prev.filter((m) => m.id !== id));
-  }
-
-  async function handleReply(id: string) {
-    const text = (replyText[id] ?? "").trim();
-    if (!text) return;
-
-    const res = await fetch("/api/messages", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "reply", adminReply: text }),
-    });
-    if (!res.ok) return;
-
-    setMessages((prev) => prev.map((m) =>
-      m.id === id
-        ? { ...m, admin_reply: text, replied_at: new Date().toISOString() }
-        : m
-    ));
-    setReplyText((prev) => ({ ...prev, [id]: "" }));
-  }
-
-  async function clearReply(id: string) {
-    const res = await fetch("/api/messages", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "clearReply" }),
-    });
-    if (!res.ok) return;
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, admin_reply: null, replied_at: null } : m)));
-  }
-
-  function handleExpand(id: string) {
-    setExpanded(expanded === id ? null : id);
-    const msg = messages.find((m) => m.id === id);
-    if (msg && !msg.is_read) markRead(id);
-  }
-
-  function timeAgo(iso: string) {
-    const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return new Date(iso).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
-  }
-
-  const unread = messages.filter((m) => !m.is_read).length;
+  const activeConvo = conversations.find((c) => c.user_email === activeEmail);
 
   return (
     <AdminLayout>
-      <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <p className="text-xs text-amber-600 font-bold tracking-widest uppercase mb-1">Admin</p>
-          <h1 className="text-2xl font-extrabold text-gray-900">
-            Messages
-            {unread > 0 && (
-              <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{unread} new</span>
-            )}
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={fetchMessages} className="bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold px-4 py-2 rounded-full transition-colors">Refresh</button>
-          {unread > 0 && (
-            <button onClick={markAllRead} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-bold px-4 py-2 rounded-full transition-colors">Mark All Read</button>
-          )}
-        </div>
+      <div className="mb-4">
+        <p className="text-xs text-amber-600 font-bold tracking-widest uppercase mb-1">Admin</p>
+        <h1 className="text-2xl font-extrabold text-gray-900">Messages</h1>
       </div>
 
-      {loading ? (
-        <div className="bg-white rounded-2xl shadow-sm p-16 text-center text-gray-400">Loading messages...</div>
-      ) : messages.length === 0 ? (
-        <div className="bg-white rounded-2xl shadow-sm p-16 text-center">
-          <span className="text-4xl">??</span>
-          <p className="text-gray-400 mt-3 text-sm">No messages yet. User messages from the Contact page will appear here.</p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-3">
-          {messages.map((msg) => (
-            <div key={msg.id} className={`bg-white rounded-2xl shadow-sm overflow-hidden border-l-4 ${!msg.is_read ? "border-amber-500" : "border-transparent"}`}>
-              <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => handleExpand(msg.id)}>
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${!msg.is_read ? "bg-amber-100 text-amber-600" : "bg-gray-100 text-gray-500"}`}>
-                    {msg.name[0].toUpperCase()}
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden flex" style={{ height: "calc(100vh - 200px)", minHeight: 500 }}>
+        {/* Left panel — conversation list */}
+        <div className="w-72 flex-shrink-0 border-r border-gray-100 flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-100">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Conversations</p>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {loadingConvos ? (
+              <div className="p-6 text-center text-sm text-gray-400">Loading...</div>
+            ) : conversations.length === 0 ? (
+              <div className="p-6 text-center">
+                <p className="text-3xl mb-2">💬</p>
+                <p className="text-sm text-gray-400">No conversations yet.</p>
+              </div>
+            ) : (
+              conversations.map((convo) => (
+                <button
+                  key={convo.user_email}
+                  onClick={() => openConversation(convo.user_email)}
+                  className={`w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-rose-50 transition-colors border-b border-gray-50 ${
+                    activeEmail === convo.user_email ? "bg-rose-50 border-l-4 border-l-rose-500" : ""
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-amber-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                    {convo.user_name?.[0]?.toUpperCase() ?? "U"}
                   </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className={`text-sm font-bold truncate ${!msg.is_read ? "text-gray-900" : "text-gray-600"}`}>{msg.name}</p>
-                      {!msg.is_read && <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className={`text-sm truncate ${convo.unread > 0 ? "font-bold text-gray-900" : "font-semibold text-gray-700"}`}>
+                        {convo.user_name}
+                      </p>
+                      <span className="text-[10px] text-gray-400 flex-shrink-0">{formatTime(convo.last_time)}</span>
                     </div>
-                    <p className="text-xs text-gray-400 truncate">{msg.email}</p>
-                    <p className="text-xs text-gray-500 truncate mt-0.5">{msg.message}</p>
+                    <div className="flex items-center justify-between gap-1 mt-0.5">
+                      <p className={`text-xs truncate ${convo.unread > 0 ? "text-gray-700 font-medium" : "text-gray-400"}`}>
+                        {convo.last_message}
+                      </p>
+                      {convo.unread > 0 && (
+                        <span className="bg-rose-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0">
+                          {convo.unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right panel — chat window */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {!activeEmail ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <div className="text-5xl mb-3">💬</div>
+              <p className="text-gray-500 font-semibold">Select a conversation</p>
+              <p className="text-gray-400 text-sm mt-1">Choose a user from the left to view their messages.</p>
+            </div>
+          ) : (
+            <>
+              {/* Chat header */}
+              <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-3 bg-white">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-400 to-amber-400 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                  {activeConvo?.user_name?.[0]?.toUpperCase() ?? "U"}
                 </div>
-                <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                  <p className="text-xs text-gray-400">{timeAgo(msg.created_at)}</p>
-                  <button onClick={(e) => { e.stopPropagation(); deleteMessage(msg.id); }}
-                    className="text-xs text-red-400 hover:text-red-600 font-semibold transition-colors">Delete</button>
-                  <span className="text-gray-400">{expanded === msg.id ? "?" : "?"}</span>
+                <div>
+                  <p className="font-bold text-gray-900 text-sm">{activeConvo?.user_name}</p>
+                  <p className="text-xs text-gray-400">{activeEmail}</p>
                 </div>
               </div>
 
-              {expanded === msg.id && (
-                <div className="border-t border-gray-100 px-5 py-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-sm font-bold text-amber-600">
-                      {msg.name[0].toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-gray-900">{msg.name}</p>
-                      <a href={`mailto:${msg.email}`} className="text-xs text-amber-600 hover:underline">{msg.email}</a>
-                    </div>
-                    <p className="ml-auto text-xs text-gray-400">{new Date(msg.created_at).toLocaleString("en-PH")}</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{msg.message}</p>
-                  </div>
-
-                  {msg.admin_reply ? (
-                    <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                      <p className="text-xs font-bold text-amber-700 mb-1">Your reply</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{msg.admin_reply}</p>
-                      <div className="flex items-center justify-between mt-2">
-                        <p className="text-[11px] text-gray-500">{msg.replied_at ? new Date(msg.replied_at).toLocaleString("en-PH") : ""}</p>
-                        <button onClick={() => clearReply(msg.id)} className="text-xs text-red-500 hover:text-red-700 font-semibold">Delete Reply</button>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-1 bg-gray-50">
+                {loadingMsgs ? (
+                  <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Loading messages...</div>
+                ) : messages.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-sm text-gray-400">No messages yet.</div>
+                ) : (
+                  messages.map((msg, i) => {
+                    const isAdmin = msg.sender === "admin";
+                    const showDate = i === 0 || !isSameDay(messages[i - 1].created_at, msg.created_at);
+                    return (
+                      <div key={msg.id}>
+                        {showDate && (
+                          <div className="flex justify-center my-3">
+                            <span className="text-[11px] text-gray-400 bg-white border border-gray-200 px-3 py-1 rounded-full">
+                              {formatDate(msg.created_at)}
+                            </span>
+                          </div>
+                        )}
+                        <div className={`flex items-end gap-2 mb-1 ${isAdmin ? "flex-row-reverse" : "flex-row"}`}>
+                          {!isAdmin && (
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-amber-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mb-0.5">
+                              {msg.user_name?.[0]?.toUpperCase() ?? "U"}
+                            </div>
+                          )}
+                          <div className={`max-w-[68%] flex flex-col ${isAdmin ? "items-end" : "items-start"}`}>
+                            <div
+                              className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap break-words ${
+                                isAdmin
+                                  ? "bg-gradient-to-br from-rose-500 to-amber-500 text-white rounded-br-sm"
+                                  : "bg-white text-gray-800 rounded-bl-sm shadow-sm border border-gray-100"
+                              }`}
+                            >
+                              {msg.content}
+                            </div>
+                            <span className="text-[10px] text-gray-400 mt-0.5 px-1">{formatBubbleTime(msg.created_at)}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="mt-3 flex gap-2">
-                      <input
-                        value={replyText[msg.id] ?? ""}
-                        onChange={(e) => setReplyText((prev) => ({ ...prev, [msg.id]: e.target.value }))}
-                        onKeyDown={(e) => e.key === "Enter" && handleReply(msg.id)}
-                        placeholder="Write a reply for this user..."
-                        className="flex-1 border rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                      />
-                      <button onClick={() => handleReply(msg.id)} className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-4 rounded-xl transition-colors">Reply</button>
-                    </div>
-                  )}
+                    );
+                  })
+                )}
+                <div ref={bottomRef} />
+              </div>
 
-                  <div className="mt-3 flex gap-2">
-                    <a href={`mailto:${msg.email}?subject=Re: Your message to Cheni Craft`}
-                      className="bg-amber-500 hover:bg-amber-400 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors">
-                      Reply via Email
-                    </a>
-                    <button onClick={() => deleteMessage(msg.id)}
-                      className="border border-red-200 hover:border-red-400 text-red-400 hover:text-red-600 text-xs font-semibold px-4 py-2 rounded-full transition-colors">
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+              {/* Input */}
+              <div className="px-4 py-3 border-t border-gray-100 bg-white flex items-center gap-3">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={`Reply to ${activeConvo?.user_name ?? "user"}...`}
+                  className="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-rose-300 placeholder-gray-400"
+                  disabled={sending}
+                />
+                <button
+                  onClick={sendReply}
+                  disabled={!input.trim() || sending}
+                  className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-amber-500 flex items-center justify-center text-white disabled:opacity-40 hover:opacity-90 transition-opacity flex-shrink-0"
+                >
+                  <svg className="w-4 h-4 rotate-45" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                  </svg>
+                </button>
+              </div>
+            </>
+          )}
         </div>
-      )}
+      </div>
     </AdminLayout>
   );
 }
